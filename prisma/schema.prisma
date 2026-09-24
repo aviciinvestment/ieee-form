@@ -1,0 +1,34 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Registration {
+  id        String   @id @default(uuid())
+  firstName String
+  lastName  String
+  phone     String
+  techSkill String
+  email     String   @unique
+  createdAt DateTime @default(now())
+}
+
+model CommunityManager {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  trackName String   @default("")
+  createdAt DateTime @default(now())
+}
+
+model LearningTrack {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  whatsappLink String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
