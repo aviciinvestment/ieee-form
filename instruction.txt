@@ -1,0 +1,138 @@
+INSTRUCTIONS
+============
+
+WHAT WAS SET UP
+---------------
+1. Frontend .env file
+   - File: ./.env  (repo root). Holds the Firebase config with variable names
+     FIREBASE_API_KEY, FIREBASE_AUTH_DOMAIN, FIREBASE_PROJECT_ID,
+     FIREBASE_STORAGE_BUCKET, FIREBASE_MESSAGING_SENDER_ID, FIREBASE_APP_ID,
+     FIREBASE_MEASUREMENT_ID.
+   - Template: ./.env.example
+   - NOTE: A browser can NEVER read a .env file. Firestore/Firebase config is
+     meant to be public anyway, but you asked to keep it out of the JS source.
+     So the Express server (/server/server.js) loads ./.env and exposes the
+     values to the browser at the route:
+        GET /api/config/firebase
+     and script.js fetches that route before initializing Firebase.
+   - script.js no longer contains the hardcoded config.
+
+2. Server changes (server/server.js)
+   - Loads BOTH env files:
+        ./.env        (frontend/Firebase config)
+        ./server/.env (DATABASE_URL, ADMIN_EMAILS, PORT)
+     Real environment variables are never overwritten by dotenv, so on Vercel
+     the dashboard vars win, which is what we want.
+   - New public endpoint /api/config/firebase.
+   - Server still serves the static frontend AND the API in one app.
+
+3. Prisma (server/prisma/schema.prisma)
+   - Added binaryTargets = ["native", "rhel-openssl-3.0.x"]
+     "native" keeps Windows local dev working; "rhel-openssl-3.0.x" is what
+     Vercel Node.js Functions need. Run `prisma generate` after pulling this.
+
+4. Vercel config
+   - ./package.json            (root): lets Vercel install deps + run
+     `prisma generate --schema=server/prisma/schema.prisma` automatically.
+   - ./vercel.json             : builds server/server.js with @vercel/node and
+     includes ALL files so the Express app can serve the static frontend too.
+   - ./.vercelignore           : keeps node_modules / lockfiles out of uploads.
+
+RUN LOCALLY (unchanged workflow)
+--------------------------------
+  cd server
+  pnpm install
+  pnpm prisma generate        (after schema change - already done once for you)
+  npm run dev                 (or: npm start  from repo root)
+
+  Open http://localhost:3000  -> the register form works, exactly as before.
+
+  Quick self-check: open http://localhost:3000/api/config/firebase - you
+  should see your Firebase values (no longer hardcoded in script.js).
+
+CAN YOU HOST FRONTEND AND BACKEND TOGETHER ON VERCEL?
+-----------------------------------------------------
+YES. They are one single deployment. Your Express backend does two jobs:
+it serves the static HTML/CSS/JS (frontend) AND handles /api/* (backend).
+vercel.json sends every request to the Express serverless function, which
+already routes static files and API calls. You only manage ONE Vercel project.
+
+DEPLOY STEP BY STEP
+-------------------
+1. Push this folder to a GitHub repository:
+     cd "C:\Users\HP\OneDrive\Desktop\ieee form"
+     git init
+     git add -A
+     git commit -m "Initial commit"
+     (create a repo on github.com, then)
+     git remote add origin https://github.com/YOUR_USER/ieee-form.git
+     git push -u origin main
+   IMPORTANT: .env files are gitignored (do NOT commit them).
+   The .env.example files ARE committed as documentation.
+
+2. Go to https://vercel.com/dashboard -> Add New Project -> Import your repo.
+   - Root directory: leave at the repo root (do NOT pick "server").
+   - Framework Preset: "Other".
+   - Build/Output settings: leave as auto (the root package.json + vercel.json
+     handle everything).
+
+3. Add environment variables in Vercel:
+   Project -> Settings -> Environment Variables (add for Production and any
+   other environments you use).
+   Copy from your local ./server/.env :
+       DATABASE_URL = "postgresql://..."      (your Neon pooled URL)
+       ADMIN_EMAILS = "victorychibuakunna@gmail.com"
+   Copy from your local ./.env :
+       FIREBASE_API_KEY = "AIzaSy..."
+       FIREBASE_AUTH_DOMAIN = "global-standard-474515-c2.firebaseapp.com"
+       FIREBASE_PROJECT_ID = "global-standard-474515-c2"
+       FIREBASE_STORAGE_BUCKET = "global-standard-474515-c2.firebasestorage.app"
+       FIREBASE_MESSAGING_SENDER_ID = "872943871761"
+       FIREBASE_APP_ID = "1:872943871761:web:6b1520f979b5fdcb3c4eb0"
+       FIREBASE_MEASUREMENT_ID = "G-FH5DKGEV38"
+   (These are exactly the values already in your local files - just paste them.)
+
+4. Hit Deploy. Vercel will:
+   - run `npm install` at the root (also runs `prisma generate` via
+     postinstall, so Prisma Client is ready for the Vercel engine),
+   - build server/server.js as a serverless function with all static files
+     included,
+   - deploy everything to one URL like https://your-project.vercel.app.
+
+5. Allow the domain in Firebase (IMPORTANT for Google / email magic-link login):
+   Firebase Console -> Authentication -> Settings -> Authorized domains.
+   Add your Vercel domain(s), e.g. your-project.vercel.app (do not remove
+   localhost).
+
+6. Test the live site:
+   - https://your-project.vercel.app/              -> registration page loads
+   - https://your-project.vercel.app/api/health    -> {"status":"ok",...}
+   - https://your-project.vercel.app/api/config/firebase -> returns Firebase config
+   - Register a test user - it should save to Neon and return the WhatsApp link.
+
+OPTIONAL: Vercel CLI (instead of the dashboard)
+------------------------------------------------
+  npm i -g vercel
+  run this from the repo ROOT:
+      vercel   (first-time: logs you in, links project, deploys preview)
+      vercel --prod
+
+NOTE ON "FIREBASE SECRETS"
+--------------------------
+Firebase config keys for web apps are not actually secret (they are exposed to
+every visitor's browser by design; real protection is your Firebase Security
+Rules). They are now stored in .env so the JS source stays clean, and so you
+can change them per environment without touching code.
+
+TROUBLESHOOTING
+---------------
+- Build fails with "prisma: command not found":
+  prisma is declared in the root package.json dependencies - it must stay there.
+- Runtime "could not locate the Query Engine for runtime":
+  run `pnpm prisma generate` locally after pulling the schema change
+  (binaryTargets are already set), then push again.
+- Firebase login loops / "This domain isn't authorized":
+  add the deployed domain in Firebase console Authorized domains (step 5).
+- /api/config/firebase returns nulls:
+  the FIREBASE_* variables are missing in Vercel - add them (step 3).
+- CORS errors: not expected because frontend and API are same origin on Vercel.

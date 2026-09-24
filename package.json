@@ -1,0 +1,22 @@
+{
+  "name": "ieee-30-days-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Vercel build entrypoint. The Express app lives in /server, but Vercel installs dependencies from this root manifest so the serverless function can resolve them.",
+  "main": "server/server.js",
+  "scripts": {
+    "start": "node server/server.js",
+    "dev": "cd server && npm run dev",
+    "postinstall": "prisma generate --schema=server/prisma/schema.prisma"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.6",
+    "dotenv": "^16.4.7",
+    "express": "^5.2.1",
+    "prisma": "^6.19.3"
+  }
+}

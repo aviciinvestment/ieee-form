@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - IEEE Registration</title>
+    <script>
+        (function(){try{var t=localStorage.getItem('theme');if(t){document.documentElement.setAttribute('data-theme',t);}}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="style.css">
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <div class="dashboard-wrapper">
+            <div class="dashboard-topbar">
+                <button type="button" id="menuToggle" class="menu-toggle" aria-label="Menu"><i class='bx bx-menu'></i></button>
+                <div class="dashboard-menu" id="dashboardMenu">
+                    <a href="index.html" class="nav-link"><i class='bx bx-home'></i> Form</a>
+                    <button type="button" id="logoutBtn" class="btn btn-logout"><i class='bx bx-log-out'></i> Logout</button>
+                </div>
+            </div>
+            
+            <div class="logo-container">
+                <img src="logo.svg" alt="IEEE Logo" class="app-logo">
+            </div>
+            <h2>ADMIN DASHBOARD</h2>
+            <p class="subtitle">View and manage all registered participants</p>
+            
+            <!-- Main Data Container (Requires Auth) -->
+            <div id="dataContainer">
+                <div id="loadingMessage" class="message">Loading registrations...</div>
+                <div id="errorMessage" class="message" style="display: none; color: #d9534f;"></div>
+
+                <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>First Name</th>
+                            <th>Last Name</th>
+                            <th>Phone</th>
+                            <th>Tech Skill</th>
+                            <th>Email</th>
+                            <th>Registration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                        <!-- Data will be populated here via JavaScript -->
+                    </tbody>
+                </table>
+                </div>
+
+                <!-- Community Managers Section -->
+                <div id="adminSection" class="admin-card">
+                    <h3>Manage Community Managers</h3>
+                    <p class="subtitle">Add or remove community managers who can view the dashboard data.</p>
+                    
+                    <div class="row">
+                        <div class="col" style="flex: 2;">
+                            <div class="input-box" style="margin: 0;">
+                                <input type="email" id="newManagerEmail" placeholder="Enter Gmail Address..." required>
+                                <i class='bx bx-envelope'></i>
+                            </div>
+                        </div>
+                        <div class="col" style="flex: 2;">
+                            <div class="input-box" style="margin: 0;">
+                                <select id="newManagerTrack" required>
+                                    <option value="" disabled selected>Select Track</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col" style="flex: 1; display: flex; align-items: center;">
+                            <button type="button" id="addManagerBtn" class="btn" style="margin: 0; height: 55px; width: 100%;">Add</button>
+                        </div>
+                    </div>
+
+                    <h4>Authorized Managers <span id="managerCount" class="manager-count">0</span></h4>
+                    <ul id="managersList" style="list-style: none; padding: 0; margin: 0;">
+                        <!-- Managers populated here via JS -->
+                    </ul>
+                </div>
+
+                <!-- Learning Tracks & WhatsApp Groups Section -->
+                <div class="admin-card">
+                    <h3>Manage Learning Tracks &amp; WhatsApp Groups</h3>
+                    <p class="subtitle">Add or edit the WhatsApp group links for each learning track. Users are redirected to these groups right after registering.</p>
+
+                    <div class="row">
+                        <div class="col" style="flex: 2;">
+                            <div class="input-box" style="margin: 0;">
+                                <input type="text" id="newTrackName" placeholder="Track Name (e.g. Web Development)">
+                                <i class='bx bx-book-alt'></i>
+                            </div>
+                        </div>
+                        <div class="col" style="flex: 3;">
+                            <div class="input-box" style="margin: 0;">
+                                <input type="url" id="newTrackLink" placeholder="WhatsApp Group Link">
+                                <i class='bx bxl-whatsapp'></i>
+                            </div>
+                        </div>
+                        <div class="col" style="flex: 1; display: flex; align-items: center;">
+                            <button type="button" id="addTrackBtn" class="btn" style="margin: 0; height: 55px; width: 100%;">Add</button>
+                        </div>
+                    </div>
+
+                    <h4>Learning Tracks <span id="trackCount" class="manager-count">0</span></h4>
+                    <ul id="tracksList" style="list-style: none; padding: 0; margin: 0;">
+                        <!-- Tracks populated here via JS -->
+                    </ul>
+                </div>
+            </div>
+    </div>
+    
+    <!-- Custom Modal -->
+    <div id="customModal" class="modal-overlay">
+        <div class="modal-content">
+            <i class='bx bx-error-circle' id="modalIcon"></i>
+            <h3 id="modalTitle">Alert</h3>
+            <p id="modalMessage">Message goes here.</p>
+            <button id="modalCloseBtn" class="btn">OK</button>
+        </div>
+    </div>
+
+    <script src="theme.js"></script>
+    <script type="module" src="dashboard.js"></script>
+</body>
+</html>
