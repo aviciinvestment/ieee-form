@@ -1,4 +1,18 @@
-document.addEventListener('DOMContentLoaded', function() {
+import {
+    onAuthStateChanged,
+    signOut
+} from "https://www.gstatic.com/firebasejs/11.0.1/firebase-auth.js";
+import { getFirebase } from "./portal-firebase.js";
+
+function onReady(fn) {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', fn);
+    } else {
+        fn();
+    }
+}
+
+onReady(async function() {
     const tableBody = document.getElementById('tableBody');
     const loadingMessage = document.getElementById('loadingMessage');
     const errorMessage = document.getElementById('errorMessage');
@@ -38,6 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const modalMessage = document.getElementById('modalMessage');
     const modalCloseBtn = document.getElementById('modalCloseBtn');
 
+    let fb = null;
+    try {
+        fb = await getFirebase();
+    } catch (err) {
+        console.error('Firebase init error:', err);
+    }
+
     const portalEmail = localStorage.getItem('portal_email');
     let tracksCache = [];
 
@@ -57,26 +78,67 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Enforce session: no authorized email stored -> redirect to login
+    // AND the Firebase account owning that Gmail must be signed in HERE in this
+    // browser. Otherwise anyone who fakes the localStorage email is locked out.
     if (!portalEmail) {
         window.location.href = '/login.html';
         return;
     }
 
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
+    if (!fb || !fb.auth) {
+        localStorage.removeItem('portal_email');
+        window.location.href = '/login.html';
+        return;
+    }
+
+    onAuthStateChanged(fb.auth, (user) => {
+        const authorized =
+            user &&
+            user.emailVerified !== false &&
+            user.email &&
+            user.email.toLowerCase() === portalEmail.toLowerCase();
+
+        if (authorized) {
+            initDashboard();
+        } else {
+            if (fb.auth.currentUser) {
+                signOut(fb.auth).catch(() => {});
+            }
             localStorage.removeItem('portal_email');
+            localStorage.removeItem('portal_email_for_sign_in');
             window.location.href = '/login.html';
-        });
-    }
+        }
+    });
 
-    fetchRegistrations(portalEmail);
+    // Everything below only runs after Firebase confirms the verified owner of
+    // the stored Gmail is signed in.
+    function initDashboard() {
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', () => {
+                logoutBtn.disabled = true;
+                localStorage.removeItem('portal_email');
+                localStorage.removeItem('portal_email_for_sign_in');
+                if (fb && fb.auth) {
+                    signOut(fb.auth)
+                        .catch(() => {})
+                        .finally(() => {
+                            window.location.href = '/login.html';
+                        });
+                } else {
+                    window.location.href = '/login.html';
+                }
+            });
+        }
 
-    if (adminSection) {
-        initAdmin();
-    }
+        fetchRegistrations(portalEmail);
 
-    if (communityTrackLabel) {
-        showCommunityTrack();
+        if (adminSection) {
+            initAdmin();
+        }
+
+        if (communityTrackLabel) {
+            showCommunityTrack();
+        }
     }
 
     // Load tracks, then managers, then render the manager track dropdowns

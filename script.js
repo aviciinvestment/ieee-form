@@ -222,27 +222,15 @@ registrationForm.addEventListener('submit', function(e) {
             successMessage.style.display = 'block';
             registrationForm.reset();
 
-            // Redirect user to their learning track's WhatsApp group
-            const redirectInfo = document.getElementById('redirectInfo');
-            const whatsappJoinBtn = document.getElementById('whatsappJoinBtn');
-
+            // Redirect straight to the learning track's WhatsApp group
+            // (no countdown timer, no intermediate request).
             if (data.whatsappLink) {
-                whatsappJoinBtn.href = data.whatsappLink;
-                whatsappJoinBtn.style.display = 'flex';
-
-                let countdown = 6;
-                redirectInfo.innerText = `Join your ${techSkill} WhatsApp group in ${countdown} seconds...`;
-                const timer = setInterval(() => {
-                    countdown--;
-                    if (countdown <= 0) {
-                        clearInterval(timer);
-                        window.location.href = data.whatsappLink;
-                    } else {
-                        redirectInfo.innerText = `Join your ${techSkill} WhatsApp group in ${countdown} seconds...`;
-                    }
-                }, 1000);
+                window.location.href = data.whatsappLink;
             } else {
-                redirectInfo.innerText = 'Your learning track WhatsApp group is not set up yet. Please contact the admin.';
+                const redirectInfo = document.getElementById('redirectInfo');
+                if (redirectInfo) {
+                    redirectInfo.innerText = 'Your learning track WhatsApp group is not set up yet. Please contact the admin.';
+                }
             }
         }
     })

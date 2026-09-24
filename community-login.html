@@ -18,14 +18,24 @@
                 <img src="logo.svg" alt="IEEE Logo" class="app-logo">
             </div>
             <h2>COMMUNITY MANAGER LOGIN</h2>
-            <p class="subtitle">Enter the Gmail authorized by the admin to access the community page</p>
+            <p class="subtitle">Verify with the Gmail authorized by the admin to access the community page</p>
 
             <form id="managerLoginForm">
                 <div class="input-box">
-                    <input type="email" id="managerEmail" placeholder="Enter your authorized Gmail" required>
+                    <input type="email" id="managerEmail" placeholder="Enter your Gmail" required>
                     <i class='bx bx-envelope'></i>
                 </div>
-                <button type="submit" id="authBtn" class="btn">Authenticate</button>
+
+                <div id="auth-section" class="auth-section" style="margin-top: 5px;">
+                    <p class="auth-text" id="authStatusText" style="text-align: center;">Sign in to verify you own this Gmail.</p>
+                    <button type="button" id="googleSignInBtn" class="btn btn-google" style="margin: 10px auto; display: flex;">
+                        <i class='bx bxl-google'></i> Sign in with Google
+                    </button>
+                    <p class="auth-text" style="text-align: center;">OR</p>
+                    <button type="button" id="magicLinkBtn" class="btn btn-outline" style="margin: 10px auto; display: flex; background: transparent; border: 2px solid #004A75; color: #004A75;">
+                        <i class='bx bx-envelope'></i> Send Magic Link
+                    </button>
+                </div>
             </form>
 
             <div id="loadingMessage" class="message" style="display: none; margin-top: 20px;">Checking authorization...</div>

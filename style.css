@@ -455,10 +455,14 @@ a.btn {
 
 .btn-logout {
     width: auto;
-    height: 40px;
-    padding: 0 20px;
-    margin: 0;
+    height: 44px;
+    padding: 0 26px;
+    margin: 6px 4px;
     font-size: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
 }
 
 .dashboard-wrapper h2 {
