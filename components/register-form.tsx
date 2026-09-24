@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { AuthSignIn } from "@/components/auth-sign-in";
 import { useAlert } from "@/components/use-alert";
@@ -15,20 +14,6 @@ import type { AuthStatus, LearningTrack } from "@/lib/types";
 
 const NAME_RE = /^[a-zA-Z]{2,30}$/;
 const PHONE_RE = /^\+?[0-9\s-]{7,15}$/;
-
-const DEFAULT_TRACKS = [
-  "Web Development",
-  "Android Development",
-  "Graphic Design",
-  "UI/UX Design",
-  "Data Science",
-  "Cybersecurity",
-  "Cloud Computing",
-  "Artificial Intelligence (AI)",
-  "Machine Learning",
-  "Product Management",
-  "Digital Marketing",
-];
 
 export function RegisterForm() {
   const [tracks, setTracks] = useState<LearningTrack[]>([]);
@@ -70,8 +55,7 @@ export function RegisterForm() {
   }, []);
 
   const skillOptions = useMemo(() => {
-    const names = tracks.map((t) => t.name);
-    return Array.from(new Set([...names, ...DEFAULT_TRACKS]));
+    return tracks.map((t) => t.name);
   }, [tracks]);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -195,9 +179,15 @@ export function RegisterForm() {
 
             <div className="space-y-2">
               <Label htmlFor="techSkill">Skill Track</Label>
-              <Select value={techSkill} onValueChange={(v) => setTechSkill(v)} disabled={!tracksLoaded && !tracks.length}>
+              <Select
+                value={techSkill}
+                onValueChange={(v) => setTechSkill(v)}
+                disabled={!tracksLoaded}
+              >
                 <SelectTrigger id="techSkill">
-                  <SelectValue placeholder="Select your learning track" />
+                  <SelectValue
+                    placeholder={tracksLoaded && !skillOptions.length ? "No learning tracks available" : "Select your learning track"}
+                  />
                 </SelectTrigger>
                 <SelectContent>
                   {skillOptions.map((name) => (
@@ -249,13 +239,6 @@ export function RegisterForm() {
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {submitting ? "Registering…" : "Register & Join WhatsApp Group"}
             </Button>
-            <p className="max-w-lg text-center text-xs text-muted-foreground">
-              Already registered or part of the IEEE community?{" "}
-              <Link href="/login" className="underline underline-offset-2 text-primary">
-                Open the management portal
-              </Link>
-              .
-            </p>
           </CardFooter>
         </form>
       </Card>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   isSignInWithEmailLink,
   onAuthStateChanged,
@@ -29,6 +28,22 @@ export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }
   const [emailInput, setEmailInput] = useState("");
   const [status, setStatus] = useState<AuthStatus>({ text: "", kind: "info" });
   const [busy, setBusy] = useState(false);
+  const [helpLink, setHelpLink] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch("/api/settings/support")
+      .then((r) => r.json().catch(() => ({})))
+      .then((d) => {
+        if (active && d?.whatsappLink) setHelpLink(d.whatsappLink);
+      })
+      .catch(() => {
+        /* support link optional */
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (!fb) return;
@@ -161,25 +176,25 @@ export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }
         </div>
       </div>
 
-      <form
-        className="space-y-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          handleMagicLink();
-        }}
-      >
+      <div className="space-y-2">
         <Input
           type="email"
           placeholder="Enter your Gmail address…"
           value={emailInput}
           onChange={(e) => setEmailInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleMagicLink();
+            }
+          }}
           disabled={!fb || busy}
           autoComplete="email"
         />
-        <Button type="submit" variant="outline" className="w-full" disabled={!fb || busy}>
+        <Button type="button" variant="outline" className="w-full" onClick={handleMagicLink} disabled={!fb || busy}>
           Send magic link
         </Button>
-      </form>
+      </div>
 
       {status.text ? (
         <p
@@ -199,10 +214,20 @@ export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }
       ) : null}
 
       <p className="text-xs text-muted-foreground">
-        By continuing you agree to use your real Gmail address.{" "}
-        <Link href="/login" className="underline underline-offset-2" onClick={(e) => e.preventDefault()}>
-          Need help?
-        </Link>
+        By continuing you agree to use your real Gmail address.
+        {helpLink ? (
+          <>
+            {" "}
+            <a
+              href={helpLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline underline-offset-2 text-primary"
+            >
+              Need help?
+            </a>
+          </>
+        ) : null}
       </p>
     </div>
   );

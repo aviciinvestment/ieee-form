@@ -3,6 +3,7 @@ import { Outfit } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { BackgroundIcons } from "@/components/background-icons";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" suppressHydrationWarning>
       <body className={`${outfit.variable} font-sans antialiased`}>
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
+          <BackgroundIcons />
+          <div className="relative z-10">
+            {children}
+          </div>
           <ThemeToggle />
         </ThemeProvider>
       </body>

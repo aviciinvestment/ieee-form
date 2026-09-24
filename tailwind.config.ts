@@ -57,10 +57,17 @@ const config: Config = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: "0" },
         },
+        fall: {
+          "0%": { transform: "translateY(-10%) rotate(0deg)", opacity: "0" },
+          "10%": { opacity: "0.15" },
+          "90%": { opacity: "0.15" },
+          "100%": { transform: "translateY(110vh) rotate(360deg)", opacity: "0" },
+        }
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "fall": "fall 15s linear infinite",
       },
     },
   },

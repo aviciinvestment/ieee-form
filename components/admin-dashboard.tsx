@@ -38,6 +38,9 @@ export function AdminDashboard() {
   const [trackEdits, setTrackEdits] = useState<Record<string, { name: string; whatsappLink: string }>>({});
   const [managerTrackEdits, setManagerTrackEdits] = useState<Record<string, string>>({});
 
+  const [supportLinkInput, setSupportLinkInput] = useState("");
+  const [supportBusy, setSupportBusy] = useState(false);
+
   const [subtitle, setSubtitle] = useState("View and manage all registered participants");
 
   async function loadRegistrations() {
@@ -83,11 +86,22 @@ export function AdminDashboard() {
     }
   }
 
+  async function loadSupportLink() {
+    try {
+      const res = await fetch("/api/settings/support");
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.whatsappLink) setSupportLinkInput(data.whatsappLink);
+    } catch {
+      /* noop */
+    }
+  }
+
   useEffect(() => {
     if (state !== "granted" || !portalEmail) return;
     loadRegistrations();
     loadManagers();
     loadTracks();
+    loadSupportLink();
     fetch("/api/auth/role", { headers: emailHeader(portalEmail) })
       .then((r) => r.json())
       .then((d) => {
@@ -252,6 +266,32 @@ export function AdminDashboard() {
       showAlert("Network error", "Could not delete track. Please try again.");
     } finally {
       setTrackBusy(false);
+    }
+  }
+
+  async function saveSupportLink() {
+    const link = supportLinkInput.trim();
+    if (!link) {
+      showAlert("Missing link", "Enter a WhatsApp link first.");
+      return;
+    }
+    setSupportBusy(true);
+    try {
+      const res = await fetch("/api/settings/support", {
+        method: "PUT",
+        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        body: JSON.stringify({ whatsappLink: link }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        showAlert("Success", data.message || "Support link updated successfully");
+      } else {
+        showAlert("Could not update", data.error || "Something went wrong.");
+      }
+    } catch {
+      showAlert("Network error", "Could not update the support link. Please try again.");
+    } finally {
+      setSupportBusy(false);
     }
   }
 
@@ -466,6 +506,33 @@ export function AdminDashboard() {
                 )}
               </ul>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="text-lg">Support &amp; Help</CardTitle>
+            <CardDescription>
+              Set the WhatsApp link users are taken to when they click &quot;Need help?&quot; on the registration form. Leave blank to hide it.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Input
+                type="url"
+                placeholder="WhatsApp support link (e.g. https://wa.me/2348000000000)"
+                value={supportLinkInput}
+                onChange={(e) => setSupportLinkInput(e.target.value)}
+                aria-label="Support WhatsApp link"
+                className="flex-1"
+              />
+              <Button onClick={saveSupportLink} disabled={supportBusy} className="w-full sm:w-auto">
+                {supportBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
+              </Button>
+            </div>
+            {supportLinkInput.trim() ? (
+              <p className="mt-2 break-all text-xs text-muted-foreground">{supportLinkInput.trim()}</p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
