@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getManagerAccess, type ManagerAccess } from "@/lib/auth";
-import { buildOptionCreates, parseQuizInput, type QuestionInput } from "@/lib/quiz";
+import { buildOptionCreates, normalizeDurationMinutes, parseQuizInput, type QuestionInput } from "@/lib/quiz";
 import { resolveReferenceFiles } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
@@ -58,6 +58,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         description: quiz.description,
         trackName: quiz.trackName,
         published: quiz.published,
+        durationMinutes: quiz.durationMinutes,
         attemptCount: quiz._count.attempts,
         locked: quiz._count.attempts > 0,
         questions: quiz.questions.map((question, index) => ({
@@ -127,6 +128,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const description =
       typeof raw.description === "string" ? raw.description.trim().slice(0, 2000) : quiz.description;
     const published = typeof raw.published === "boolean" ? raw.published : quiz.published;
+    // The time limit stays editable even once the questions are frozen.
+    const durationMinutes =
+      "durationMinutes" in raw ? normalizeDurationMinutes(raw.durationMinutes) : quiz.durationMinutes;
 
     const requestedTrack = typeof raw.trackName === "string" ? raw.trackName.trim() : quiz.trackName;
     const track = await prisma.learningTrack.findUnique({ where: { name: requestedTrack } });
@@ -139,7 +143,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     let questions: (QuestionInput & { referenceFilePages?: number; referenceFileText?: string })[] | null = null;
     if (!contentLocked) {
-      const parsed = parseQuizInput({ ...raw, title, description, published });
+      const parsed = parseQuizInput({ ...raw, title, description, published, durationMinutes });
       if (!parsed.ok) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
@@ -164,7 +168,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     await prisma.$transaction(async (tx) => {
       await tx.quiz.update({
         where: { id: quiz.id },
-        data: { title, description, published, trackName: track.name },
+        data: { title, description, published, trackName: track.name, durationMinutes },
       });
 
       if (questions) {

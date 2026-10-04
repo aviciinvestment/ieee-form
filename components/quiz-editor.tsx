@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { QuestionDraft, QuizDraft } from "@/lib/types";
+import { MAX_QUIZ_DURATION_MINUTES } from "@/lib/types";
 
 type Props = {
   draft: QuizDraft;
@@ -93,6 +94,29 @@ export function QuizEditor({
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="quiz-duration">Time limit (minutes)</Label>
+            <Input
+              id="quiz-duration"
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={MAX_QUIZ_DURATION_MINUTES}
+              step={5}
+              value={Number.isFinite(draft.durationMinutes) ? draft.durationMinutes : 0}
+              onChange={(event) =>
+                onChange({ ...draft, durationMinutes: Math.max(0, Math.trunc(Number(event.target.value) || 0)) })
+              }
+              placeholder="0"
+              disabled={saving}
+            />
+            <p className="text-xs text-muted-foreground">
+              {draft.durationMinutes > 0
+                ? `Participants get ${draft.durationMinutes} minute${draft.durationMinutes === 1 ? "" : "s"}, and their answers are submitted automatically when the time runs out.`
+                : "Leave at 0 for no time limit. The countdown starts when a participant opens the quiz and keeps running if they close the page."}
+            </p>
+          </div>
+
+          <div className="space-y-1.5 sm:col-span-2">
             <Label>Learning track</Label>
             {lockedTrack ? (
               <Input value={lockedTrack} readOnly disabled />
@@ -112,7 +136,7 @@ export function QuizEditor({
             )}
           </div>
 
-          <div className="flex items-end gap-3 pb-2">
+          <div className="flex items-end gap-3 pb-2 sm:col-span-2">
             <label className="flex cursor-pointer items-center gap-2 text-sm">
               <input
                 type="checkbox"

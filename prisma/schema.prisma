@@ -51,6 +51,8 @@ model Quiz {
   description String   @default("")
   trackName   String
   published   Boolean  @default(false)
+  // Time limit for one attempt, in minutes. 0 means the participant gets unlimited time.
+  durationMinutes Int  @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -103,7 +105,10 @@ model QuizAttempt {
   score            Float     @default(0)
   maxScore         Float     @default(0)
   percentage       Float     @default(0)
-  submittedAt      DateTime  @default(now())
+  // The attempt is opened the moment the participant opens the quiz, which anchors the timer.
+  startedAt        DateTime  @default(now())
+  // Stays null while the attempt is still open, so a timed-out attempt is never lost.
+  submittedAt      DateTime?
 
   // The participant cannot see any score until a manager publishes the result.
   resultStatus     ResultStatus @default(PENDING_REVIEW)

@@ -29,7 +29,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
     }
 
     const attempts = await prisma.quizAttempt.findMany({
-      where: { quizId: quiz.id },
+      // Attempts still in progress have no result to review, so they are left out entirely.
+      where: { quizId: quiz.id, submittedAt: { not: null } },
       orderBy: { submittedAt: "desc" },
       include: { answers: true },
     });
@@ -45,6 +46,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           title: quiz.title,
           trackName: quiz.trackName,
           published: quiz.published,
+          durationMinutes: quiz.durationMinutes,
           totalPoints: quiz.questions.reduce((sum, question) => sum + question.points, 0),
         },
         questions: quiz.questions.map((question, index) => ({
@@ -65,7 +67,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           score: attempt.score,
           maxScore: attempt.maxScore,
           percentage: attempt.percentage,
-          submittedAt: attempt.submittedAt,
+          submittedAt: attempt.submittedAt?.toISOString() ?? "",
           resultStatus: attempt.resultStatus,
           publishedAt: attempt.publishedAt,
           publishedBy: attempt.publishedBy,
@@ -86,7 +88,6 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
               similarity: answer?.similarity ?? null,
               aiScore: answer?.aiScore ?? null,
               aiReason: answer?.aiReason ?? "",
-              aiModel: answer?.aiModel ?? "",
             };
           }),
         })),

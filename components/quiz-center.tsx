@@ -132,6 +132,11 @@ export function QuizCenter() {
                       <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                         <Badge variant="outline">{quiz.questionCount} questions</Badge>
                         <Badge variant="outline">{quiz.totalPoints} points</Badge>
+                        {quiz.durationMinutes > 0 ? (
+                          <Badge variant="outline" title="Your answers are submitted automatically when the time runs out">
+                            <Clock className="h-3.5 w-3.5" /> {quiz.durationMinutes} min
+                          </Badge>
+                        ) : null}
                         {quiz.objectiveCount > 0 ? (
                           <Badge variant="secondary">{quiz.objectiveCount} objective</Badge>
                         ) : null}
@@ -178,7 +183,8 @@ export function QuizCenter() {
 
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
             <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Each quiz allows one attempt. Your score stays private until a community manager publishes the result.
+            Each quiz allows one attempt, and a timed quiz starts counting down the moment you open it. Your score
+            stays private until a community manager publishes the result.
           </p>
         </div>
       )}

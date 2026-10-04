@@ -1,4 +1,5 @@
 import { gradeWrittenAnswer, isAiGradingEnabled } from "@/lib/nvidia";
+import { MAX_QUIZ_DURATION_MINUTES } from "@/lib/types";
 
 export const QUESTION_TYPES = ["OBJECTIVE", "SHORT_TEXT", "LONG_TEXT"] as const;
 export type QuestionTypeValue = (typeof QUESTION_TYPES)[number];
@@ -38,6 +39,8 @@ export type QuizInput = {
   title: string;
   description: string;
   published: boolean;
+  /** Time limit for one attempt in minutes; 0 means unlimited. */
+  durationMinutes: number;
   questions: QuestionInput[];
 };
 
@@ -62,6 +65,17 @@ export type GradedAnswer = {
 
 function asString(value: unknown, max = 500): string {
   return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+
+/**
+ * Time limit for a single attempt, in minutes. Anything missing, zero, negative or
+ * non-numeric means "unlimited", and the value is capped so a quiz cannot be given
+ * an absurd limit by accident.
+ */
+export function normalizeDurationMinutes(value: unknown): number {
+  const minutes = Math.trunc(Number(value));
+  if (!Number.isFinite(minutes) || minutes <= 0) return 0;
+  return Math.min(minutes, MAX_QUIZ_DURATION_MINUTES);
 }
 
 export function normalizeQuestionType(value: unknown): QuestionTypeValue {
@@ -119,6 +133,7 @@ export function parseQuizInput(
 
   const description = asString(raw.description, 2000);
   const published = raw.published === true;
+  const durationMinutes = normalizeDurationMinutes(raw.durationMinutes);
 
   const rawQuestions = Array.isArray(raw.questions) ? raw.questions : [];
   if (rawQuestions.length === 0) {
@@ -190,7 +205,7 @@ export function parseQuizInput(
     });
   }
 
-  return { ok: true, value: { title, description, published, questions } };
+  return { ok: true, value: { title, description, published, durationMinutes, questions } };
 }
 
 export function totalPoints(questions: { points: number }[]): number {
@@ -239,7 +254,6 @@ export type AttemptAnswerView = {
   similarity: number | null;
   aiScore: number | null;
   aiReason: string;
-  aiModel: string;
 };
 
 export type AttemptResult = {
@@ -352,7 +366,6 @@ export function buildAttemptResult(attempt: AttemptRecord, questions: QuestionRe
         similarity: answer?.similarity ?? null,
         aiScore: answer?.aiScore ?? null,
         aiReason: answer?.aiReason ?? "",
-        aiModel: answer?.aiModel ?? "",
       };
     }),
   };

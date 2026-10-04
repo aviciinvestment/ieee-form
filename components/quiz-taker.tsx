@@ -24,14 +24,29 @@ type QuizSummaryView = {
   trackName: string;
   questionCount: number;
   totalPoints: number;
+  /** Time limit for one attempt in minutes; 0 means unlimited. */
+  durationMinutes: number;
 };
 
 type TakePayload = {
   quiz: QuizSummaryView;
   attempted: boolean;
+  /** True when the attempt was closed because its time ran out before the page was reopened. */
+  timedOut?: boolean;
+  /** Whole seconds left on the clock when the page loaded, or 0 for an unlimited quiz. */
+  remainingSeconds?: number;
   questions?: TakeQuestion[];
   result?: AttemptResultView;
 };
+
+/** Renders a countdown as mm:ss, growing the hours only when a quiz needs them. */
+function formatCountdown(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  const clock = `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return hours > 0 ? `${hours}:${clock}` : clock;
+}
 
 export function QuizTaker({ quizId }: { quizId: string }) {
   const [email, setEmail] = useState<string | null>(null);
@@ -44,7 +59,11 @@ export function QuizTaker({ quizId }: { quizId: string }) {
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState("");
   const [maxPages, setMaxPages] = useState(0);
+  /** null means the quiz has no time limit, so no countdown is shown. */
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const fileInputs = useRef<Record<string, HTMLInputElement | null>>({});
+  const submitRef = useRef<() => void>(() => {});
+  const autoSubmitted = useRef(false);
 
   const load = useCallback(async () => {
     if (!email) return;
@@ -61,12 +80,16 @@ export function QuizTaker({ quizId }: { quizId: string }) {
       const next: TakePayload = data.data;
       setPayload(next);
       setResult(next.attempted ? (next.result ?? null) : null);
+      autoSubmitted.current = false;
       if (!next.attempted && next.questions) {
         const initial: Record<string, AnswerEntry> = {};
         for (const question of next.questions) {
           initial[question.id] = { selectedOptionId: null, responseText: "" };
         }
         setAnswers(initial);
+        setRemainingSeconds(next.quiz.durationMinutes > 0 ? (next.remainingSeconds ?? 0) : null);
+      } else {
+        setRemainingSeconds(null);
       }
     } catch {
       setError("Network error while loading this quiz.");
@@ -78,6 +101,16 @@ export function QuizTaker({ quizId }: { quizId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const timed = remainingSeconds !== null;
+
+  useEffect(() => {
+    if (!timed) return;
+    const timer = window.setInterval(() => {
+      setRemainingSeconds((current) => (current === null ? current : Math.max(0, current - 1)));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [timed]);
 
   const questions = payload?.questions ?? [];
   const answeredCount = useMemo(
@@ -173,6 +206,20 @@ export function QuizTaker({ quizId }: { quizId: string }) {
     }
   }
 
+  useEffect(() => {
+    submitRef.current = submit;
+  });
+
+  // The server refuses answers that arrive long after the deadline, so the countdown has to hand
+  // the answers over itself the moment it reaches zero.
+  useEffect(() => {
+    if (remainingSeconds !== 0 || autoSubmitted.current) return;
+    autoSubmitted.current = true;
+    submitRef.current();
+  }, [remainingSeconds]);
+
+  const expired = remainingSeconds === 0;
+
   return (
     <div className="w-full max-w-3xl mx-auto px-4 py-10">
       <div className="mb-6 text-center">
@@ -201,7 +248,15 @@ export function QuizTaker({ quizId }: { quizId: string }) {
           <Loader2 className="h-4 w-4 animate-spin" /> Loading quiz…
         </p>
       ) : result && result.resultStatus === "PENDING_REVIEW" ? (
-        <PendingView result={result} quiz={payload?.quiz} />
+        <div className="space-y-4">
+          {payload?.timedOut ? (
+            <p className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0" />
+              The time for this quiz ran out while the page was closed, so it was submitted without your answers.
+            </p>
+          ) : null}
+          <PendingView result={result} quiz={payload?.quiz} />
+        </div>
       ) : result ? (
         <ResultView result={result} quiz={payload?.quiz} />
       ) : error ? (
@@ -223,11 +278,25 @@ export function QuizTaker({ quizId }: { quizId: string }) {
               <CardTitle className="text-xl">{payload.quiz.title}</CardTitle>
               <CardDescription>{payload.quiz.description || "Answer every question, then submit."}</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-wrap gap-2">
+            <CardContent className="flex flex-wrap items-center gap-2">
               <Badge variant="outline">{payload.quiz.questionCount} questions</Badge>
               <Badge variant="outline">{payload.quiz.totalPoints} points</Badge>
               <Badge variant="secondary">{payload.quiz.trackName}</Badge>
+              {remainingSeconds !== null ? (
+                <Badge variant={expired || remainingSeconds <= 60 ? "destructive" : "outline"} aria-live="polite">
+                  <Clock className="mr-1 h-3.5 w-3.5" />
+                  {expired ? "Time is up" : `${formatCountdown(remainingSeconds)} left`}
+                </Badge>
+              ) : null}
             </CardContent>
+            {timed ? (
+              <p className="flex items-start gap-2 border-t border-border px-6 py-3 text-xs text-muted-foreground">
+                <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                {expired
+                  ? "The time is up, so your answers are being submitted."
+                  : "This quiz is timed. The clock started when you opened it and keeps running if you close the page, and your answers are submitted automatically at zero."}
+              </p>
+            ) : null}
           </Card>
 
           {questions.map((question, index) => {
@@ -240,22 +309,8 @@ export function QuizTaker({ quizId }: { quizId: string }) {
                     {index + 1}. {question.prompt}
                   </CardTitle>
                   <CardDescription>
-                    {question.referenceFileUrl ? (
-                      <a
-                        href={question.referenceFileUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="font-medium text-primary underline underline-offset-2"
-                      >
-                        Read the attached document ({question.referenceFilePages} page
-                        {question.referenceFilePages === 1 ? "" : "s"})
-                      </a>
-                    ) : question.type === "OBJECTIVE" ? (
-                      "Choose one option"
-                    ) : (
-                      "Write your answer"
-                    )}{" "}
-                    · {question.points} point{question.points === 1 ? "" : "s"}
+                    {question.type === "OBJECTIVE" ? "Choose one option" : "Write your answer"} ·{" "}
+                    {question.points} point{question.points === 1 ? "" : "s"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -393,7 +448,7 @@ export function QuizTaker({ quizId }: { quizId: string }) {
                   <ArrowLeft className="h-4 w-4" /> Back
                 </Link>
               </Button>
-              <Button onClick={submit} disabled={submitting}>
+              <Button onClick={submit} disabled={submitting || expired}>
                 {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 Submit answers
               </Button>
@@ -540,9 +595,9 @@ function ResultView({ result, quiz }: { result: AttemptResultView; quiz?: QuizSu
                   <Bot className="mr-1 inline h-3 w-3" />
                   How this was graded
                 </p>
-{answer.similarity !== null ? (
-                    <p>Legacy embedding score: {(answer.similarity * 100).toFixed(1)}%</p>
-                  ) : null}
+                {answer.similarity !== null ? (
+                  <p>Legacy embedding score: {(answer.similarity * 100).toFixed(1)}%</p>
+                ) : null}
                 {answer.aiReason ? <p>{answer.aiReason}</p> : null}
               </div>
             ) : null}

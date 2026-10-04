@@ -18,7 +18,7 @@ export async function GET(req: Request) {
       include: {
         questions: { orderBy: { order: "asc" }, select: { points: true, type: true } },
         attempts: {
-          where: { participantEmail: access.registration.email },
+          where: { participantEmail: access.registration.email, submittedAt: { not: null } },
           select: {
             id: true,
             score: true,
@@ -47,6 +47,7 @@ export async function GET(req: Request) {
           title: quiz.title,
           description: quiz.description,
           trackName: quiz.trackName,
+          durationMinutes: quiz.durationMinutes,
           questionCount: quiz.questions.length,
           totalPoints: totalPoints(quiz.questions),
           objectiveCount: quiz.questions.filter((question) => question.type === "OBJECTIVE").length,
@@ -56,7 +57,7 @@ export async function GET(req: Request) {
           attempt: quiz.attempts[0]
             ? {
                 id: quiz.attempts[0].id,
-                submittedAt: quiz.attempts[0].submittedAt.toISOString(),
+                submittedAt: quiz.attempts[0].submittedAt?.toISOString() ?? "",
                 resultStatus: quiz.attempts[0].resultStatus,
                 publishedAt: quiz.attempts[0].publishedAt?.toISOString() ?? null,
                 ...(quiz.attempts[0].resultStatus === "PUBLISHED"

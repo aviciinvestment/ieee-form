@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
-import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getParticipantAccess } from "@/lib/auth";
-import { gradeSubmission, normalizeSubmission, participantResult, percentage, totalPoints } from "@/lib/quiz";
+import { normalizeSubmission, participantResult } from "@/lib/quiz";
 import { extractPdfTextFromCloudinary, PdfError, sanitizeExtractedText } from "@/lib/pdf";
 import { isManagedPdfUrl } from "@/lib/cloudinary";
+import { closeAttempt } from "@/lib/attempts";
+import { isSubmissionLate } from "@/lib/quiz-timer";
 
 export const dynamic = "force-dynamic";
 
 // AI grading calls can take a while, especially when several long answers are graded.
 export const maxDuration = 120;
-
-type AttemptWithAnswers = Prisma.QuizAttemptGetPayload<{ include: { answers: true } }>;
 
 /**
  * Picks the text the AI will grade for every PDF answer. The text extracted during the upload is
@@ -90,56 +89,61 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const max = totalPoints(quiz.questions);
-    const answerFiles = await readUploadedAnswerFiles(quiz.questions, body);
-    const graded = await gradeSubmission(quiz.questions, normalizeSubmission(body), { answerFiles });
-    const resultPercentage = percentage(graded.score, max);
-
     const existing = await prisma.quizAttempt.findUnique({
       where: { quizId_participantEmail: { quizId: quiz.id, participantEmail: access.registration.email } },
       include: { answers: true },
     });
 
-    if (existing) {
+    // The attempt is opened when the quiz is loaded, so a submit without one means the request
+    // never came from the quiz page.
+    if (!existing) {
+      return NextResponse.json({ error: "Open the quiz before submitting your answers." }, { status: 409 });
+    }
+    if (existing.submittedAt) {
+      const closed = { ...existing, submittedAt: existing.submittedAt };
       return NextResponse.json(
-        { error: "You have already taken this quiz.", result: participantResult(existing, quiz.questions) },
+        { error: "You have already taken this quiz.", result: participantResult(closed, quiz.questions) },
         { status: 409 }
       );
     }
 
-    let attempt: AttemptWithAnswers;
-    try {
-      attempt = await prisma.quizAttempt.create({
-        data: {
-          quizId: quiz.id,
-          registrationId: access.registration.id,
-          participantEmail: access.registration.email,
-          participantName: `${access.registration.firstName} ${access.registration.lastName}`.trim(),
-          trackName: access.registration.techSkill,
-          score: graded.score,
-          maxScore: max,
-          percentage: resultPercentage,
-          // The participant cannot see anything until a manager publishes the result.
-          resultStatus: "PENDING_REVIEW",
-          answers: { create: graded.answers },
-        },
+    // A submission that lands well past the deadline is discarded: the timer already ran out, so
+    // anything held back is refused and the attempt closes exactly as the countdown left it.
+    const late = isSubmissionLate(existing.startedAt, quiz.durationMinutes);
+    const answerFiles = late ? undefined : await readUploadedAnswerFiles(quiz.questions, body);
+    const attempt = await closeAttempt({
+      attemptId: existing.id,
+      questions: quiz.questions,
+      body: late ? { answers: [] } : body,
+      answerFiles,
+    });
+
+    if (!attempt) {
+      // A concurrent request closed the attempt first, so this one no longer counts.
+      const winner = await prisma.quizAttempt.findUnique({
+        where: { quizId_participantEmail: { quizId: quiz.id, participantEmail: access.registration.email } },
         include: { answers: true },
       });
-    } catch (error) {
-      // The unique index on (quizId, participantEmail) is the real guard against a second attempt.
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-        const winner = await prisma.quizAttempt.findUnique({
-          where: { quizId_participantEmail: { quizId: quiz.id, participantEmail: access.registration.email } },
-          include: { answers: true },
-        });
-        if (winner) {
-          return NextResponse.json(
-            { error: "You have already taken this quiz.", result: participantResult(winner, quiz.questions) },
-            { status: 409 }
-          );
-        }
-      }
-      throw error;
+      return NextResponse.json(
+        {
+          error: "You have already taken this quiz.",
+          result:
+            winner?.submittedAt != null
+              ? participantResult({ ...winner, submittedAt: winner.submittedAt }, quiz.questions)
+              : undefined,
+        },
+        { status: 409 }
+      );
+    }
+
+    if (late) {
+      return NextResponse.json(
+        {
+          error: "Time is up for this quiz, so answers sent after the deadline were not graded.",
+          result: participantResult(attempt, quiz.questions),
+        },
+        { status: 409 }
+      );
     }
 
     return NextResponse.json(

@@ -49,12 +49,17 @@ export const QUESTION_KIND_LABELS: Record<QuestionKind, string> = {
 
 export const QUESTION_TYPE_VALUES: QuestionKind[] = ["OBJECTIVE", "SHORT_TEXT", "LONG_TEXT"];
 
+/** Longest time limit a manager can set on a quiz, in minutes. 0 means unlimited. */
+export const MAX_QUIZ_DURATION_MINUTES = 600;
+
 export type QuizSummary = {
   id: string;
   title: string;
   description: string;
   trackName: string;
   published: boolean;
+  /** Time limit for one attempt in minutes; 0 means unlimited. */
+  durationMinutes: number;
   questionCount: number;
   totalPoints: number;
   attemptCount: number;
@@ -68,6 +73,7 @@ export type QuizDetail = {
   description: string;
   trackName: string;
   published: boolean;
+  durationMinutes: number;
   attemptCount: number;
   locked: boolean;
   questions: {
@@ -110,6 +116,8 @@ export type QuizDraft = {
   description: string;
   published: boolean;
   trackName: string;
+  /** Time limit for one attempt in minutes; 0 means unlimited. */
+  durationMinutes: number;
   questions: QuestionDraft[];
 };
 
@@ -140,7 +148,6 @@ export type GradedAnswerView = {
   similarity: number | null;
   aiScore: number | null;
   aiReason: string;
-  aiModel: string;
 };
 
 export type AttemptResultView = {
@@ -159,6 +166,8 @@ export type AvailableQuiz = {
   title: string;
   description: string;
   trackName: string;
+  /** Time limit for one attempt in minutes; 0 means unlimited. */
+  durationMinutes: number;
   questionCount: number;
   totalPoints: number;
   objectiveCount: number;
@@ -181,8 +190,6 @@ export type TakeQuestion = {
   type: QuestionKind;
   points: number;
   order: number;
-  referenceFileUrl?: string;
-  referenceFilePages?: number;
   options: { id: string; label: string }[];
 };
 
@@ -213,6 +220,5 @@ export type QuizAttemptSummary = {
     similarity: number | null;
     aiScore: number | null;
     aiReason: string;
-    aiModel: string;
   }[];
 };

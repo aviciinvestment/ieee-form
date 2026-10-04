@@ -44,7 +44,7 @@ type Props = {
 };
 
 type AttemptsPayload = {
-  quiz: { id: string; title: string; trackName: string; totalPoints: number };
+  quiz: { id: string; title: string; trackName: string; totalPoints: number; durationMinutes: number };
   questions: {
     id: string;
     prompt: string;
@@ -130,6 +130,7 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
       description: "",
       published: false,
       trackName: lockedTrack ?? trackOptions[0] ?? "",
+      durationMinutes: 0,
       questions: [emptyQuestion()],
     });
   }
@@ -152,6 +153,7 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
         description: quiz.description,
         published: quiz.published,
         trackName: quiz.trackName,
+        durationMinutes: quiz.durationMinutes ?? 0,
         questions: quiz.questions.map((question) => ({
           key: question.id,
           id: question.id,
@@ -185,6 +187,7 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
       description: target.description,
       published: target.published,
       trackName: target.trackName,
+      durationMinutes: target.durationMinutes,
       questions: target.questions.map((question: QuestionDraft) => ({
         id: question.id,
         prompt: question.prompt,
@@ -242,7 +245,13 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
       const res = await fetch(`/api/quizzes/${encodeURIComponent(quiz.id)}`, {
         method: "PUT",
         headers: { ...emailHeader(email), "Content-Type": "application/json" },
-        body: JSON.stringify({ title: quiz.title, description: quiz.description, published: !quiz.published, trackName: quiz.trackName }),
+        body: JSON.stringify({
+          title: quiz.title,
+          description: quiz.description,
+          published: !quiz.published,
+          trackName: quiz.trackName,
+          durationMinutes: quiz.durationMinutes,
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -474,6 +483,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                           {quiz.attemptCount === 1 ? "" : "s"}
                         </Badge>
                       ) : null}
+                      <Badge variant="outline" title="Time limit for one attempt">
+                        <Clock className="h-3 w-3" />
+                        {quiz.durationMinutes > 0 ? `${quiz.durationMinutes} min limit` : "No time limit"}
+                      </Badge>
                     </div>
                     {quiz.description ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{quiz.description}</p>
@@ -529,7 +542,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
             <CardTitle className="text-lg">Results — {attempts.quiz.title}</CardTitle>
             <CardDescription>
               {attempts.attempts.length} attempt{attempts.attempts.length === 1 ? "" : "s"} out of{" "}
-              {attempts.quiz.totalPoints} points. Scores stay hidden from participants until you publish them.
+              {attempts.quiz.totalPoints} points
+              {attempts.quiz.durationMinutes > 0 ? ` · ${attempts.quiz.durationMinutes} minute time limit` : " with no time limit"}. Scores stay hidden from participants until you publish them.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -635,7 +649,6 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                                     <p className="font-medium text-foreground">
                                       <Bot className="mr-1 inline h-3 w-3" />
                                       {GRADING_METHOD_LABELS[answer.gradedBy]}
-                                      {answer.aiModel ? ` · ${answer.aiModel}` : ""}
                                     </p>
                                     {answer.similarity !== null ? (
                                       <p>
