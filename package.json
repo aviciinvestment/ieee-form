@@ -12,6 +12,8 @@
     "prisma:push": "prisma db push"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.2.0",
+    "@prisma/adapter-neon": "^6.19.3",
     "@prisma/client": "^6.19.3",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-dialog": "^1.1.1",
@@ -27,12 +29,15 @@
     "prisma": "^6.19.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "tailwind-merge": "^2.5.2"
+    "tailwind-merge": "^2.5.2",
+    "unpdf": "^1.8.1",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",
+    "@types/ws": "^8.18.2",
     "autoprefixer": "^10.4.20",
     "postcss": "^8.4.45",
     "tailwindcss": "^3.4.10",

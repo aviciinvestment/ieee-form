@@ -13,6 +13,7 @@ import { CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useFirebaseAccount } from "@/components/use-firebase";
+import { useModal } from "@/components/use-modal";
 import type { AuthStatus } from "@/lib/types";
 
 const isGmail = (email: string) => email.trim().toLowerCase().endsWith("@gmail.com");
@@ -25,6 +26,7 @@ type Props = {
 
 export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }: Props) {
   const { fb, loadError } = useFirebaseAccount();
+  const { prompt, dialogs } = useModal();
   const [emailInput, setEmailInput] = useState("");
   const [status, setStatus] = useState<AuthStatus>({ text: "", kind: "info" });
   const [busy, setBusy] = useState(false);
@@ -74,22 +76,40 @@ export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }
     if (!isSignInWithEmailLink(fb.auth, href)) return;
 
     let email = window.localStorage.getItem("portal_email_for_sign_in") || "";
-    if (!email) {
-      const typed = window.prompt("Please confirm your Gmail address for verification:");
-      if (!typed) return;
-      email = typed;
-    }
-    if (!isGmail(email)) {
-      setStatus({ text: "Only Gmail addresses are allowed.", kind: "error" });
+
+    const complete = (value: string) => {
+      if (!isGmail(value)) {
+        setStatus({ text: "Only Gmail addresses are allowed.", kind: "error" });
+        return;
+      }
+      signInWithEmailLink(fb.auth, value, href)
+        .then(() => {
+          window.localStorage.removeItem("portal_email_for_sign_in");
+        })
+        .catch((err: unknown) => {
+          setStatus({ text: friendlyError(err), kind: "error" });
+        });
+    };
+
+    if (email) {
+      complete(email);
       return;
     }
-    signInWithEmailLink(fb.auth, email, href)
-      .then(() => {
-        window.localStorage.removeItem("portal_email_for_sign_in");
-      })
-      .catch((err: unknown) => {
-        setStatus({ text: friendlyError(err), kind: "error" });
-      });
+
+    // The magic link was opened on a different device or browser, so we need the address again.
+    let active = true;
+    void prompt(
+      "Confirm your Gmail address",
+      "Please type the Gmail address you used to request the sign-in link.",
+      { label: "Gmail address", placeholder: "you@gmail.com", confirmLabel: "Continue" }
+    ).then((typed) => {
+      if (!active || !typed) return;
+      complete(typed);
+    });
+
+    return () => {
+      active = false;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fb]);
 
@@ -151,6 +171,7 @@ export function AuthSignIn({ onVerifiedEmail, onSessionLost, verificationLabel }
 
   return (
     <div className="space-y-4">
+      {dialogs}
       {verificationLabel ? (
         <p className="text-sm text-muted-foreground">{verificationLabel}</p>
       ) : null}

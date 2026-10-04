@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Home, LogOut, Menu } from "lucide-react";
+import { ClipboardList, Home, LogOut, Menu } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Button } from "@/components/ui/button";
 
@@ -42,6 +42,13 @@ export function DashboardShell({ title, subtitle, onLogout, children }: Props) {
                 className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
               >
                 <Home className="h-4 w-4" /> Registration Form
+              </Link>
+              <Link
+                href="/quiz"
+                onClick={() => setMenuOpen(false)}
+                className="flex items-center gap-2 rounded-sm px-3 py-2 text-sm hover:bg-accent"
+              >
+                <ClipboardList className="h-4 w-4" /> My Track Quizzes
               </Link>
               <Button
                 variant="ghost"

@@ -1,0 +1,83 @@
+# Fix: PDF upload in the question editor returned 401 Unauthorized
+
+## 1. What the error meant
+
+Browser console:
+
+```
+POST http://localhost:3000/api/uploads/pdf 401 (Unauthorized)
+```
+
+The upload route (`app/api/uploads/pdf/route.ts`) identifies who is uploading from the `X-User-Email`
+header. That header is what the rest of the app already sends (`emailHeader(email)` in
+`components/quiz-manager.tsx`). The **Attach PDF** button in the question editor was the one place that
+posted the file without it, so the server had no idea who was asking and correctly answered 401.
+
+This was a bug in the editor, not a problem with your Cloudinary account, your PDF, or your login.
+
+**Already fixed in the code:**
+
+- `components/question-editor.tsx` — the upload `fetch` now sends `headers: { "X-User-Email": email }`.
+- `components/quiz-editor.tsx` — new `email` prop, passed down to every question.
+- `components/quiz-manager.tsx` — passes its signed-in `email` into `QuizEditor`.
+
+Verified against the running server on port 3000:
+
+| Check | Result |
+| --- | --- |
+| Upload with no header (old behaviour) | 401 — reproduces your error |
+| Upload with header, `.txt` file | 415 `Only PDF files are accepted.` (auth passed) |
+| Upload with header, real 1-page PDF | **200**, `pages=1`, text extracted, link on your cloud |
+| Cloudinary asset deleted again after the test | 0 files left in `ieee-quiz-pdfs` |
+
+## 2. What you do now
+
+1. Save the three edited files (if your editor has not already).
+2. Look at the terminal running the app. Next.js should print `Fast Refresh` or recompile. If it does
+   not, restart the dev server: `Ctrl+C` then `npm run dev`.
+3. In the browser, press **`Ctrl+Shift+R`** (hard refresh) on the admin page. A plain refresh can keep the
+   old JavaScript in memory, which would send the request without the header again.
+4. Make sure you are signed in as an admin or as the **manager of the selected track**.
+   - Admins are listed in `ADMIN_EMAILS` in `.env` (currently `7382120041@iiit.ac.in`).
+   - Managers are set per track from the same admin area.
+5. Open **Admin → Quizzes → New quiz**, add a written question (Short answer or Long answer), then use
+   **Attach PDF** on that question and pick your file.
+6. Success looks like this in the panel: a green line such as `check.pdf · 3 pages analysed · 4,210
+   characters`, plus a **Clear PDF** button and a link to the file.
+7. Then **Save quiz**. Saving already worked before; only the upload was broken.
+
+## 3. If it still fails, match the code to the message
+
+Open DevTools → **Network** → click the failed `uploads/pdf` request → read the **Response** tab.
+
+| Status | Response message | Meaning | Fix |
+| --- | --- | --- | --- |
+| 401 | `Authentication required.` | Header still missing (stale JS) or you are signed out | Hard refresh (`Ctrl+Shift+R`), confirm you are signed in, restart dev server |
+| 403 | `This track is not managed by you.` | Signed in, but not the admin/manager of that track | Manage the quiz from the track you own, or set yourself as manager in the admin area |
+| 403 | `You are not registered for this track.` | Participant upload on a track you are not registered for | Register for the track first, or upload as a manager instead |
+| 413 | `PDF is larger than 10 MB.` | File too big | Compress it, or raise `MAX_PDF_BYTES` in `.env` and restart |
+| 415 | `Only PDF files are accepted.` | Not a real PDF | Rename alone does not help — convert/export it as PDF first |
+| 422 | `PDF has 31 pages; only 25 are analysed.` | Over `MAX_PDF_PAGES` | Remove pages, or raise `MAX_PDF_PAGES` in `.env` and restart |
+| 422 | `No selectable text found…` | Scanned/image-only PDF | Run OCR, or upload a PDF that contains real text |
+| 502 | `Cloudinary rejected the upload.` | `.env` Cloudinary values wrong or secret rotated | Re-check `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`; restart |
+| 429 | `Too many uploads. Try again later.` | 40 uploads/hour reached in this dev process | Restart the dev server (the counter is in memory) |
+
+## 4. If you change `.env`
+
+Next.js reads `.env` **only when the server starts**. After editing `MAX_PDF_PAGES`, `MAX_PDF_BYTES`,
+`MAX_PDF_CHARS` or any `CLOUDINARY_*` value: `Ctrl+C`, `npm run dev`, then hard-refresh the browser.
+
+Current values in `.env` (all set): `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`,
+`CLOUDINARY_API_SECRET`, `CLOUDINARY_UPLOAD_FOLDER=ieee-quiz-pdfs`, `MAX_PDF_PAGES=25`,
+`MAX_PDF_BYTES=10485760`, `MAX_PDF_CHARS=60000`.
+
+## 5. Participants uploading their own PDF
+
+That path was never affected — `components/quiz-taker.tsx` already sent the header. Participants must be
+signed in **and registered on the track**; otherwise the upload is refused with 403 by design.
+
+## 6. One thing to know after the upload succeeds
+
+The link shown next to a stored PDF may not open: public delivery of PDFs on your Cloudinary cloud
+(`sx1dtsdq`) currently answers 401, even though the upload itself works. Grading is unaffected because the
+text is extracted during upload. See `tell.txt` section 1.5 and `explain.txt`.

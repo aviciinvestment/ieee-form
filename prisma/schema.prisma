@@ -4,8 +4,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Registration {
@@ -36,4 +37,123 @@ model LearningTrack {
 model AppSetting {
   key   String @id
   value String
+}
+
+enum QuestionType {
+  OBJECTIVE
+  SHORT_TEXT
+  LONG_TEXT
+}
+
+model Quiz {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @default("")
+  trackName   String
+  published   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  questions Question[]
+  attempts  QuizAttempt[]
+
+  @@index([trackName])
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  quizId      String
+  quiz        Quiz         @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  prompt      String
+  type        QuestionType @default(OBJECTIVE)
+  points      Int          @default(1)
+  explanation String       @default("")
+  order       Int          @default(0)
+
+  // Manager supplied reference PDF (Cloudinary) and the text extracted from it
+  referenceFileUrl   String @default("")
+  referenceFilePages Int    @default(0)
+  referenceFileText  String @default("")
+
+  options QuizOption[]
+  answers AttemptAnswer[]
+
+  @@index([quizId])
+}
+
+model QuizOption {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  label      String
+  isCorrect  Boolean  @default(false)
+  order      Int      @default(0)
+
+  @@index([questionId])
+}
+
+model QuizAttempt {
+  id               String    @id @default(uuid())
+  quizId           String
+  quiz             Quiz      @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  registrationId   String?
+  participantEmail String
+  participantName  String    @default("")
+  trackName        String
+  score            Float     @default(0)
+  maxScore         Float     @default(0)
+  percentage       Float     @default(0)
+  submittedAt      DateTime  @default(now())
+
+  // The participant cannot see any score until a manager publishes the result.
+  resultStatus     ResultStatus @default(PENDING_REVIEW)
+  publishedAt      DateTime?
+  publishedBy      String?
+
+  // Manager can adjust the AI suggested score before publishing.
+  adjustedScore    Float?
+  adjustedMaxScore Float?
+  adjustedFeedback String      @default("")
+
+  answers AttemptAnswer[]
+
+  @@unique([quizId, participantEmail])
+  @@index([quizId])
+  @@index([resultStatus])
+}
+
+enum ResultStatus {
+  PENDING_REVIEW
+  PUBLISHED
+}
+
+model AttemptAnswer {
+  id               String      @id @default(uuid())
+  attemptId        String
+  attempt          QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId String?
+  responseText     String      @default("")
+  // PDF the participant uploaded as the answer (Cloudinary) and how much of it was read
+  responseFileUrl   String     @default("")
+  responseFilePages Int        @default(0)
+  isCorrect        Boolean     @default(false)
+  pointsAwarded    Float       @default(0)
+  feedback         String      @default("")
+
+  // AI grading details
+  gradedBy         GradingMethod @default(RULES)
+  similarity       Float?
+  aiScore          Float?
+  aiReason         String      @default("")
+  aiModel          String      @default("")
+
+  @@index([attemptId])
+}
+
+enum GradingMethod {
+  RULES
+  EMBEDDING
+  AI
 }

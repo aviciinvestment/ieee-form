@@ -1,29 +1,24 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
-import { useAlert } from "@/components/use-alert";
+import { useModal } from "@/components/use-modal";
 import { usePortalEmail, usePortalSession } from "@/components/use-portal-auth";
-import { RegistrationsTable } from "@/components/registrations-table";
+import { RegistrationsManager } from "@/components/registrations-manager";
+import { QuizManager } from "@/components/quiz-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import type { CommunityManager, LearningTrack, Registration } from "@/lib/types";
+import type { CommunityManager, LearningTrack } from "@/lib/types";
 
 const emailHeader = (email: string) => ({ "X-User-Email": email });
 
 export function AdminDashboard() {
   const portalEmail = usePortalEmail();
   const { state, logout } = usePortalSession(portalEmail);
-  const { showAlert, dialog } = useAlert();
-
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loadingReg, setLoadingReg] = useState(true);
-  const [regError, setRegError] = useState("");
+  const { showAlert, confirm, dialogs } = useModal();
 
   const [managers, setManagers] = useState<CommunityManager[]>([]);
   const [newManagerEmail, setNewManagerEmail] = useState("");
@@ -41,30 +36,7 @@ export function AdminDashboard() {
   const [supportLinkInput, setSupportLinkInput] = useState("");
   const [supportBusy, setSupportBusy] = useState(false);
 
-  const [subtitle, setSubtitle] = useState("View and manage all registered participants");
-
-  async function loadRegistrations() {
-    if (!portalEmail) return;
-    setLoadingReg(true);
-    setRegError("");
-    try {
-      const res = await fetch("/api/registrations", { headers: emailHeader(portalEmail) });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setRegistrations(data.data ?? []);
-        setTotal(data.total ?? data.data?.length ?? 0);
-      } else if (res.status === 401 || res.status === 403) {
-        window.location.href = "/login";
-        return;
-      } else {
-        setRegError(data.error || "Failed to load registrations.");
-      }
-    } catch {
-      setRegError("Network error while loading registrations.");
-    } finally {
-      setLoadingReg(false);
-    }
-  }
+  const [subtitle] = useState("View and manage all registered participants");
 
   async function loadManagers() {
     try {
@@ -98,7 +70,6 @@ export function AdminDashboard() {
 
   useEffect(() => {
     if (state !== "granted" || !portalEmail) return;
-    loadRegistrations();
     loadManagers();
     loadTracks();
     loadSupportLink();
@@ -117,7 +88,7 @@ export function AdminDashboard() {
 
   async function addManager() {
     if (!newManagerEmail.trim()) {
-      showAlert("Missing email", "Please enter a Gmail address for the manager.");
+      showAlert("Missing email", "Please enter a Gmail address for the manager.", "error");
       return;
     }
     setManagerBusy(true);
@@ -131,12 +102,12 @@ export function AdminDashboard() {
       if (res.ok) {
         setNewManagerEmail("");
         await loadManagers();
-        showAlert("Success", data.message || "Manager added successfully");
+        showAlert("Success", data.message || "Manager added successfully", "success");
       } else {
-        showAlert("Could not add manager", data.error || "Something went wrong.");
+        showAlert("Could not add manager", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not add manager. Please try again.");
+      showAlert("Network error", "Could not add manager. Please try again.", "error");
     } finally {
       setManagerBusy(false);
     }
@@ -144,7 +115,7 @@ export function AdminDashboard() {
 
   async function updateManager(id: string, trackName: string) {
     if (!trackName) {
-      showAlert("Missing track", "Select a learning track for this manager first.");
+      showAlert("Missing track", "Select a learning track for this manager first.", "error");
       return;
     }
     setManagerBusy(true);
@@ -157,19 +128,23 @@ export function AdminDashboard() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         await loadManagers();
-        showAlert("Success", data.message || "Manager track updated successfully");
+        showAlert("Success", data.message || "Manager track updated successfully", "success");
       } else {
-        showAlert("Could not update", data.error || "Something went wrong.");
+        showAlert("Could not update", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not update manager. Please try again.");
+      showAlert("Network error", "Could not update manager. Please try again.", "error");
     } finally {
       setManagerBusy(false);
     }
   }
 
   async function removeManager(email: string) {
-    if (!window.confirm(`Remove ${email} as a community manager?`)) return;
+    const ok = await confirm(`Remove ${email} as a community manager?`, "They will lose access to the manager dashboard immediately.", {
+      confirmLabel: "Remove manager",
+      destructive: true,
+    });
+    if (!ok) return;
     setManagerBusy(true);
     try {
       const res = await fetch(`/api/managers/${encodeURIComponent(email)}`, {
@@ -179,12 +154,12 @@ export function AdminDashboard() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         await loadManagers();
-        showAlert("Success", data.message || "Manager removed successfully");
+        showAlert("Success", data.message || "Manager removed successfully", "success");
       } else {
-        showAlert("Could not remove", data.error || "Something went wrong.");
+        showAlert("Could not remove", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not remove manager. Please try again.");
+      showAlert("Network error", "Could not remove manager. Please try again.", "error");
     } finally {
       setManagerBusy(false);
     }
@@ -192,7 +167,7 @@ export function AdminDashboard() {
 
   async function addTrack() {
     if (!newTrackName.trim() || !newTrackLink.trim()) {
-      showAlert("Missing details", "Track name and WhatsApp group link are required.");
+      showAlert("Missing details", "Track name and WhatsApp group link are required.", "error");
       return;
     }
     setTrackBusy(true);
@@ -207,13 +182,12 @@ export function AdminDashboard() {
         setNewTrackName("");
         setNewTrackLink("");
         await loadTracks();
-        await loadRegistrations();
-        showAlert("Success", data.message || "Learning track added successfully");
+        showAlert("Success", data.message || "Learning track added successfully", "success");
       } else {
-        showAlert("Could not add track", data.error || "Something went wrong.");
+        showAlert("Could not add track", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not add track. Please try again.");
+      showAlert("Network error", "Could not add track. Please try again.", "error");
     } finally {
       setTrackBusy(false);
     }
@@ -222,7 +196,7 @@ export function AdminDashboard() {
   async function updateTrack(id: string) {
     const edit = trackEdits[id];
     if (!edit || !edit.name || !edit.whatsappLink) {
-      showAlert("Missing details", "Track name and WhatsApp group link are required.");
+      showAlert("Missing details", "Track name and WhatsApp group link are required.", "error");
       return;
     }
     setTrackBusy(true);
@@ -235,20 +209,25 @@ export function AdminDashboard() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         await loadTracks();
-        await loadRegistrations();
-        showAlert("Success", data.message || "Learning track updated successfully");
+        showAlert("Success", data.message || "Learning track updated successfully", "success");
       } else {
-        showAlert("Could not update", data.error || "Something went wrong.");
+        showAlert("Could not update", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not update track. Please try again.");
+      showAlert("Network error", "Could not update track. Please try again.", "error");
     } finally {
       setTrackBusy(false);
     }
   }
 
   async function deleteTrack(id: string) {
-    if (!window.confirm("Delete this learning track?")) return;
+    const track = tracks.find((item) => item.id === id);
+    const ok = await confirm(
+      `Delete the "${track?.name ?? "this"}" learning track?`,
+      "Quizzes in this track will also be deleted, including all recorded attempts. This cannot be undone.",
+      { confirmLabel: "Delete track", destructive: true }
+    );
+    if (!ok) return;
     setTrackBusy(true);
     try {
       const res = await fetch(`/api/tracks/${encodeURIComponent(id)}`, {
@@ -258,12 +237,12 @@ export function AdminDashboard() {
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         await loadTracks();
-        showAlert("Success", data.message || "Learning track removed successfully");
+        showAlert("Success", data.message || "Learning track removed successfully", "success");
       } else {
-        showAlert("Could not delete", data.error || "Something went wrong.");
+        showAlert("Could not delete", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not delete track. Please try again.");
+      showAlert("Network error", "Could not delete track. Please try again.", "error");
     } finally {
       setTrackBusy(false);
     }
@@ -272,7 +251,7 @@ export function AdminDashboard() {
   async function saveSupportLink() {
     const link = supportLinkInput.trim();
     if (!link) {
-      showAlert("Missing link", "Enter a WhatsApp link first.");
+      showAlert("Missing link", "Enter a WhatsApp link first.", "error");
       return;
     }
     setSupportBusy(true);
@@ -284,12 +263,12 @@ export function AdminDashboard() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        showAlert("Success", data.message || "Support link updated successfully");
+        showAlert("Success", data.message || "Support link updated successfully", "success");
       } else {
-        showAlert("Could not update", data.error || "Something went wrong.");
+        showAlert("Could not update", data.error || "Something went wrong.", "error");
       }
     } catch {
-      showAlert("Network error", "Could not update the support link. Please try again.");
+      showAlert("Network error", "Could not update the support link. Please try again.", "error");
     } finally {
       setSupportBusy(false);
     }
@@ -317,24 +296,13 @@ export function AdminDashboard() {
   return (
     <DashboardShell title="ADMIN DASHBOARD" subtitle={subtitle} onLogout={logout}>
       <div className="space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <p className="text-sm text-muted-foreground">
-            <span className="font-semibold text-foreground">{total}</span> total registration{total === 1 ? "" : "s"}
-          </p>
-          <Button variant="outline" size="sm" onClick={loadRegistrations} disabled={loadingReg}>
-            <RefreshCw className={`h-4 w-4 ${loadingReg ? "animate-spin" : ""}`} /> Refresh
-          </Button>
-        </div>
-
-        {loadingReg ? (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading registrations…
-          </p>
-        ) : regError ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{regError}</p>
+        {portalEmail ? (
+          <RegistrationsManager email={portalEmail} tracks={trackOptions} />
         ) : (
-          <RegistrationsTable registrations={registrations} />
+          <p className="text-sm text-muted-foreground">Loading your session…</p>
         )}
+
+        {portalEmail ? <QuizManager email={portalEmail} trackOptions={trackOptions} /> : null}
 
         <Card className="glass-card">
           <CardHeader>
@@ -536,7 +504,7 @@ export function AdminDashboard() {
           </CardContent>
         </Card>
       </div>
-      {dialog}
+      {dialogs}
     </DashboardShell>
   );
 }

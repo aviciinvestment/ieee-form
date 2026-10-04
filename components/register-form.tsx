@@ -1,15 +1,16 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { AppLogo } from "@/components/app-logo";
 import { AuthSignIn } from "@/components/auth-sign-in";
-import { useAlert } from "@/components/use-alert";
+import { useModal } from "@/components/use-modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Loader2 } from "lucide-react";
+import { ClipboardList, Loader2 } from "lucide-react";
 import type { AuthStatus, LearningTrack } from "@/lib/types";
 
 const NAME_RE = /^[a-zA-Z]{2,30}$/;
@@ -33,7 +34,7 @@ export function RegisterForm() {
   });
   const [submitting, setSubmitting] = useState(false);
 
-  const { showAlert, dialog } = useAlert();
+  const { showAlert, confirm, dialogs } = useModal();
 
   useEffect(() => {
     let active = true;
@@ -71,7 +72,7 @@ export function RegisterForm() {
 
     if (Object.keys(errors).length) {
       setFieldErrors(errors);
-      showAlert("Cannot complete registration", Object.values(errors)[0]);
+      showAlert("Cannot complete registration", Object.values(errors)[0], "error");
       return;
     }
 
@@ -100,10 +101,9 @@ export function RegisterForm() {
         text: data.error || "Registration failed. Please try again.",
         kind: "error",
       });
-      showAlert("Registration issue", data.error || "Something went wrong. Please try again.");
+showAlert("Registration issue", data.error || "Something went wrong. Please try again.", "error");
     } catch {
-      setSubmitState({ text: "Network error. Please try again.", kind: "error" });
-      showAlert("Registration issue", "Network error. Please try again.");
+      showAlert("Registration issue", "Network error. Please try again.", "error");
     } finally {
       setSubmitting(false);
     }
@@ -239,10 +239,15 @@ export function RegisterForm() {
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {submitting ? "Registering…" : "Register & Join WhatsApp Group"}
             </Button>
+            <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+              <Link href="/quiz">
+                <ClipboardList className="h-4 w-4" /> Already registered? Take your track quizzes
+              </Link>
+            </Button>
           </CardFooter>
         </form>
       </Card>
-      {dialog}
+      {dialogs}
     </section>
   );
 }
