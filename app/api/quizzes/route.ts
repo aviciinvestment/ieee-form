@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getManagerAccess } from "@/lib/auth";
+import { accessDeniedResponse, getManagerAccess } from "@/lib/auth";
 import { parseQuizInput, totalPoints, buildQuestionCreates } from "@/lib/quiz";
 import { resolveReferenceFiles } from "@/lib/pdf";
 
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   try {
     const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     const requestedTrack = new URL(req.url).searchParams.get("track")?.trim() ?? "";
@@ -34,6 +34,8 @@ export async function GET(req: Request) {
         trackName: quiz.trackName,
         published: quiz.published,
         durationMinutes: quiz.durationMinutes,
+        opensAt: quiz.opensAt?.toISOString() ?? null,
+        closesAt: quiz.closesAt?.toISOString() ?? null,
         questionCount: quiz.questions.length,
         totalPoints: totalPoints(quiz.questions),
         attemptCount: quiz._count.attempts,
@@ -53,7 +55,7 @@ export async function POST(req: Request) {
   try {
     const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     let body: unknown;
@@ -93,6 +95,8 @@ export async function POST(req: Request) {
         published: parsed.value.published,
         trackName: track.name,
         durationMinutes: parsed.value.durationMinutes,
+        opensAt: parsed.value.opensAt,
+        closesAt: parsed.value.closesAt,
         questions: { create: buildQuestionCreates(questions) },
       },
       include: { questions: { select: { id: true } } },

@@ -5,10 +5,12 @@ import Link from "next/link";
 import { Award, CheckCircle2, ClipboardList, Clock, Loader2, RefreshCw } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { AuthSignIn } from "@/components/auth-sign-in";
+import { QuizWindowBadge, quizWindowNotice } from "@/components/quiz-window-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { quizWindowState } from "@/lib/quiz-window";
 import type { AvailableQuiz } from "@/lib/types";
 
 const emailHeader = (email: string) => ({ "X-User-Email": email });
@@ -121,70 +123,83 @@ export function QuizCenter() {
             </Card>
           ) : (
             <ul className="space-y-3">
-              {visible.map((quiz) => (
-                <li key={quiz.id}>
-                  <Card className="glass-card">
-                    <CardHeader>
-                      <CardTitle className="text-lg">{quiz.title}</CardTitle>
-                      {quiz.description ? <CardDescription>{quiz.description}</CardDescription> : null}
-                    </CardHeader>
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                        <Badge variant="outline">{quiz.questionCount} questions</Badge>
-                        <Badge variant="outline">{quiz.totalPoints} points</Badge>
-                        {quiz.durationMinutes > 0 ? (
-                          <Badge variant="outline" title="Your answers are submitted automatically when the time runs out">
-                            <Clock className="h-3.5 w-3.5" /> {quiz.durationMinutes} min
-                          </Badge>
-                        ) : null}
-                        {quiz.objectiveCount > 0 ? (
-                          <Badge variant="secondary">{quiz.objectiveCount} objective</Badge>
-                        ) : null}
-                        {quiz.subjectiveCount > 0 ? (
-                          <Badge variant="secondary">{quiz.subjectiveCount} written</Badge>
-                        ) : null}
-                      </div>
+              {visible.map((quiz) => {
+                const window = { opensAt: quiz.opensAt ?? null, closesAt: quiz.closesAt ?? null };
+                const state = quizWindowState(window);
+                // An attempt in progress or already finished stays reachable whatever the window
+                // says, so a participant can always come back to their own result.
+                const canStart = state === "open";
+                const notice = quizWindowNotice(window);
 
-                      {quiz.attempt ? (
-                        <div className="flex items-center gap-2">
-                          {quiz.attempt.resultStatus === "PUBLISHED" ? (
-                            <Badge
-                              variant={
-                                (quiz.attempt.percentage ?? 0) >= 50 ? "default" : "secondary"
-                              }
-                            >
-                              <Award className="h-3.5 w-3.5" />
-                              {quiz.attempt.score}/{quiz.attempt.maxScore} · {quiz.attempt.percentage}%
+                return (
+                  <li key={quiz.id}>
+                    <Card className="glass-card">
+                      <CardHeader>
+                        <CardTitle className="text-lg">{quiz.title}</CardTitle>
+                        {quiz.description ? <CardDescription>{quiz.description}</CardDescription> : null}
+                      </CardHeader>
+                      <CardContent className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                          <Badge variant="outline">{quiz.questionCount} questions</Badge>
+                          <Badge variant="outline">{quiz.totalPoints} points</Badge>
+                          {quiz.durationMinutes > 0 ? (
+                            <Badge variant="outline" title="Your answers are submitted automatically when the time runs out">
+                              <Clock className="h-3.5 w-3.5" /> {quiz.durationMinutes} min
                             </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              <Clock className="h-3.5 w-3.5" /> Awaiting review
-                            </Badge>
-                          )}
-                          <Button variant="outline" size="sm">
+                          ) : null}
+                          <QuizWindowBadge window={window} />
+                          {quiz.objectiveCount > 0 ? (
+                            <Badge variant="secondary">{quiz.objectiveCount} objective</Badge>
+                          ) : null}
+                          {quiz.subjectiveCount > 0 ? (
+                            <Badge variant="secondary">{quiz.subjectiveCount} written</Badge>
+                          ) : null}
+                        </div>
+
+                        {quiz.attempt ? (
+                          <div className="flex items-center gap-2">
+                            {quiz.attempt.resultStatus === "PUBLISHED" ? (
+                              <Badge
+                                variant={
+                                  (quiz.attempt.percentage ?? 0) >= 50 ? "default" : "secondary"
+                                }
+                              >
+                                <Award className="h-3.5 w-3.5" />
+                                {quiz.attempt.score}/{quiz.attempt.maxScore} · {quiz.attempt.percentage}%
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary">
+                                <Clock className="h-3.5 w-3.5" /> Awaiting review
+                              </Badge>
+                            )}
+                            <Button variant="outline" size="sm" asChild>
+                              <Link href={`/quiz/${quiz.id}`}>
+                                {quiz.attempt.resultStatus === "PUBLISHED" ? "View result" : "View status"}
+                              </Link>
+                            </Button>
+                          </div>
+                        ) : canStart ? (
+                          <Button size="sm" asChild>
                             <Link href={`/quiz/${quiz.id}`}>
-                              {quiz.attempt.resultStatus === "PUBLISHED" ? "View result" : "View status"}
+                              <ClipboardList className="h-4 w-4" /> Start quiz
                             </Link>
                           </Button>
-                        </div>
-                      ) : (
-                        <Button size="sm">
-                          <Link href={`/quiz/${quiz.id}`}>
-                            <ClipboardList className="h-4 w-4" /> Start quiz
-                          </Link>
-                        </Button>
-                      )}
-                    </CardContent>
-                  </Card>
-                </li>
-              ))}
+                        ) : (
+                          <p className="max-w-[16rem] text-xs text-muted-foreground">{notice}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </li>
+                );
+              })}
             </ul>
           )}
 
           <p className="flex items-start gap-2 text-xs text-muted-foreground">
             <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-            Each quiz allows one attempt, and a timed quiz starts counting down the moment you open it. Your score
-            stays private until a community manager publishes the result.
+            Each quiz allows one attempt, a timed quiz starts counting down the moment you open it, and each one only
+            accepts answers inside its opening and closing dates. Your score stays private until a community manager
+            publishes the result.
           </p>
         </div>
       )}

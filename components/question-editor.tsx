@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { ArrowDown, ArrowUp, Check, FileText, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { NumericInput } from "@/components/numeric-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -215,16 +216,13 @@ export function QuestionEditor({ question, index, total, disabled, onChange, onR
           </div>
           <div className="space-y-1.5">
             <Label htmlFor={`points-${question.key}`}>Points</Label>
-            <Input
+            <NumericInput
               id={`points-${question.key}`}
-              type="number"
+              value={question.points}
+              onCommit={(points) => onChange({ ...question, points })}
               min={1}
               max={100}
-              value={question.points}
               disabled={disabled}
-              onChange={(event) =>
-                onChange({ ...question, points: Math.max(1, Number(event.target.value) || 1) })
-              }
             />
           </div>
           <div className="space-y-1.5">

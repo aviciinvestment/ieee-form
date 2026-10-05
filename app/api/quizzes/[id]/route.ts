@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getManagerAccess, type ManagerAccess } from "@/lib/auth";
-import { buildOptionCreates, normalizeDurationMinutes, parseQuizInput, type QuestionInput } from "@/lib/quiz";
+import { accessDeniedResponse, getManagerAccess, type ManagerAccess } from "@/lib/auth";
+import { buildOptionCreates, normalizeDurationMinutes, parseQuizInput, parseQuizWindow, type QuestionInput } from "@/lib/quiz";
 import { resolveReferenceFiles } from "@/lib/pdf";
 
 export const dynamic = "force-dynamic";
@@ -18,11 +18,11 @@ type LoadedQuiz =
       }>;
       access: Extract<ManagerAccess, { ok: true }>;
     }
-  | { ok: false; status: number; error: string };
+  | { ok: false; status: number; error: string; code?: string };
 
 async function loadOwnedQuiz(req: Request, id: string): Promise<LoadedQuiz> {
   const access = await getManagerAccess(req);
-  if (!access.ok) return { ok: false, status: access.status, error: access.error };
+  if (!access.ok) return access;
 
   const quiz = await prisma.quiz.findUnique({
     where: { id },
@@ -47,7 +47,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
   try {
     const loaded = await loadOwnedQuiz(req, params.id);
     if (!loaded.ok) {
-      return NextResponse.json({ error: loaded.error }, { status: loaded.status });
+      return accessDeniedResponse(loaded);
     }
 
     const { quiz } = loaded;
@@ -59,6 +59,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
         trackName: quiz.trackName,
         published: quiz.published,
         durationMinutes: quiz.durationMinutes,
+        opensAt: quiz.opensAt?.toISOString() ?? null,
+        closesAt: quiz.closesAt?.toISOString() ?? null,
         attemptCount: quiz._count.attempts,
         locked: quiz._count.attempts > 0,
         questions: quiz.questions.map((question, index) => ({
@@ -90,7 +92,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   try {
     const loaded = await loadOwnedQuiz(req, params.id);
     if (!loaded.ok) {
-      return NextResponse.json({ error: loaded.error }, { status: loaded.status });
+      return accessDeniedResponse(loaded);
     }
 
     const { quiz } = loaded;
@@ -132,6 +134,17 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const durationMinutes =
       "durationMinutes" in raw ? normalizeDurationMinutes(raw.durationMinutes) : quiz.durationMinutes;
 
+    // The availability window is a scheduling setting, so like the time limit it stays editable
+    // after somebody has taken the quiz. An absent key keeps the stored value.
+    const window = parseQuizWindow({
+      opensAt: "opensAt" in raw ? raw.opensAt : quiz.opensAt,
+      closesAt: "closesAt" in raw ? raw.closesAt : quiz.closesAt,
+    });
+    if (!window.ok) {
+      return NextResponse.json({ error: window.error }, { status: 400 });
+    }
+    const { opensAt, closesAt } = window.value;
+
     const requestedTrack = typeof raw.trackName === "string" ? raw.trackName.trim() : quiz.trackName;
     const track = await prisma.learningTrack.findUnique({ where: { name: requestedTrack } });
     if (!track) {
@@ -143,7 +156,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     let questions: (QuestionInput & { referenceFilePages?: number; referenceFileText?: string })[] | null = null;
     if (!contentLocked) {
-      const parsed = parseQuizInput({ ...raw, title, description, published, durationMinutes });
+      const parsed = parseQuizInput({ ...raw, title, description, published, durationMinutes, opensAt, closesAt });
       if (!parsed.ok) {
         return NextResponse.json({ error: parsed.error }, { status: 400 });
       }
@@ -168,7 +181,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     await prisma.$transaction(async (tx) => {
       await tx.quiz.update({
         where: { id: quiz.id },
-        data: { title, description, published, trackName: track.name, durationMinutes },
+        data: {
+          title,
+          description,
+          published,
+          trackName: track.name,
+          durationMinutes,
+          opensAt,
+          closesAt,
+        },
       });
 
       if (questions) {
@@ -216,7 +237,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   try {
     const loaded = await loadOwnedQuiz(req, params.id);
     if (!loaded.ok) {
-      return NextResponse.json({ error: loaded.error }, { status: loaded.status });
+      return accessDeniedResponse(loaded);
     }
 
     await prisma.quiz.delete({ where: { id: loaded.quiz.id } });

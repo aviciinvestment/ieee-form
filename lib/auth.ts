@@ -1,3 +1,4 @@
+import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
 export type AuthRole = {
@@ -37,18 +38,38 @@ export function getRequestEmail(req: Request): string | null {
 export type ManagerAccess =
   | { ok: true; role: "admin"; email: string }
   | { ok: true; role: "manager"; trackName: string; email: string }
-  | { ok: false; status: number; error: string };
+  | {
+      ok: false;
+      status: number;
+      error: string;
+      /**
+       * Lets the browser tell a genuine session problem apart from a manager who simply has no
+       * track yet. The two need different screens: one asks for a new sign in, the other asks the
+       * admin to finish assigning a track.
+       */
+      code: "NO_EMAIL" | "NO_ROLE" | "NO_TRACK";
+    };
 
 /** Admin-or-manager gate used by every portal management endpoint. */
 export async function getManagerAccess(req: Request): Promise<ManagerAccess> {
   const email = getRequestEmail(req);
   if (!email) {
-    return { ok: false, status: 401, error: "Unauthorized: Missing email authentication header." };
+    return {
+      ok: false,
+      status: 401,
+      code: "NO_EMAIL",
+      error: "Unauthorized: Missing email authentication header.",
+    };
   }
 
   const role = await readRole(email);
   if (role.role === "none") {
-    return { ok: false, status: 403, error: "Forbidden: You do not have permission to perform this action." };
+    return {
+      ok: false,
+      status: 403,
+      code: "NO_ROLE",
+      error: "Forbidden: You do not have permission to perform this action.",
+    };
   }
 
   if (role.role === "admin") return { ok: true, role: "admin", email: email.trim().toLowerCase() };
@@ -57,11 +78,18 @@ export async function getManagerAccess(req: Request): Promise<ManagerAccess> {
     return {
       ok: false,
       status: 403,
-      error: "Forbidden: No learning track is assigned to your account yet. Ask the admin to assign one.",
+      code: "NO_TRACK",
+      error:
+        "No learning track is assigned to your account yet. Ask the admin to assign one on the admin dashboard.",
     };
   }
 
   return { ok: true, role: "manager", trackName: role.trackName, email: email.trim().toLowerCase() };
+}
+
+/** Turns a failed access check into the JSON body every portal endpoint returns. */
+export function accessDeniedResponse(access: { status: number; error: string; code?: string }) {
+  return NextResponse.json({ error: access.error, code: access.code }, { status: access.status });
 }
 
 export type ParticipantAccess =

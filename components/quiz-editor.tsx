@@ -1,11 +1,13 @@
 "use client";
 
-import { Loader2, Plus, Save, X } from "lucide-react";
+import { CalendarClock, Clock, Loader2, Plus, Save, X } from "lucide-react";
 import { emptyQuestion, QuestionEditor } from "@/components/question-editor";
+import { NumericInput } from "@/components/numeric-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { describeWindow, fromDateTimeLocalValue, toDateTimeLocalValue } from "@/lib/quiz-window";
 import type { QuestionDraft, QuizDraft } from "@/lib/types";
 import { MAX_QUIZ_DURATION_MINUTES } from "@/lib/types";
 
@@ -63,7 +65,8 @@ export function QuizEditor({
       {lockedQuestions ? (
         <p className="mb-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
           Somebody has already taken this quiz, so the questions are locked to keep their results accurate. You can
-          still change the title, description and publish state, or create a fresh quiz with new questions.
+          still change the title, description, availability window, time limit and publish state, or create a fresh
+          quiz with new questions.
         </p>
       ) : null}
 
@@ -93,26 +96,56 @@ export function QuizEditor({
             />
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="quiz-duration">Time limit (minutes)</Label>
-            <Input
-              id="quiz-duration"
-              type="number"
-              inputMode="numeric"
-              min={0}
-              max={MAX_QUIZ_DURATION_MINUTES}
-              step={5}
-              value={Number.isFinite(draft.durationMinutes) ? draft.durationMinutes : 0}
-              onChange={(event) =>
-                onChange({ ...draft, durationMinutes: Math.max(0, Math.trunc(Number(event.target.value) || 0)) })
-              }
-              placeholder="0"
-              disabled={saving}
-            />
+          <div className="space-y-4 rounded-md border border-border bg-muted/30 p-3 sm:col-span-2">
+            <div className="flex items-center gap-2">
+              <CalendarClock className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-medium">When participants can take this quiz</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="quiz-duration">Time limit (minutes)</Label>
+                <NumericInput
+                  id="quiz-duration"
+                  value={draft.durationMinutes}
+                  onCommit={(durationMinutes) => onChange({ ...draft, durationMinutes })}
+                  min={0}
+                  max={MAX_QUIZ_DURATION_MINUTES}
+                  placeholder="0"
+                  disabled={saving}
+                />
+                <p className="text-xs text-muted-foreground">
+                  {draft.durationMinutes > 0
+                    ? `${draft.durationMinutes} minute${draft.durationMinutes === 1 ? "" : "s"} per attempt, submitted automatically at zero.`
+                    : "0 means no limit. The clock starts when the quiz is opened."}
+                </p>
+              </div>
+
+              <WindowInput
+                id="quiz-opens-at"
+                label="Opens at"
+                icon={<Clock className="h-3.5 w-3.5" />}
+                value={draft.opensAt}
+                max={draft.closesAt ? toDateTimeLocalValue(draft.closesAt) : undefined}
+                onChange={(iso) => onChange({ ...draft, opensAt: iso })}
+                disabled={saving}
+              />
+
+              <WindowInput
+                id="quiz-closes-at"
+                label="Closes at"
+                icon={<Clock className="h-3.5 w-3.5" />}
+                value={draft.closesAt}
+                min={draft.opensAt ? toDateTimeLocalValue(draft.opensAt) : undefined}
+                onChange={(iso) => onChange({ ...draft, closesAt: iso })}
+                disabled={saving}
+              />
+            </div>
+
             <p className="text-xs text-muted-foreground">
-              {draft.durationMinutes > 0
-                ? `Participants get ${draft.durationMinutes} minute${draft.durationMinutes === 1 ? "" : "s"}, and their answers are submitted automatically when the time runs out.`
-                : "Leave at 0 for no time limit. The countdown starts when a participant opens the quiz and keeps running if they close the page."}
+              {describeWindow({ opensAt: draft.opensAt, closesAt: draft.closesAt })} Leaving both empty keeps the
+              quiz open for as long as it stays published. The closing time only stops new attempts; somebody already
+              inside their own countdown is allowed to finish.
             </p>
           </div>
 
@@ -208,6 +241,65 @@ export function QuizEditor({
           </Button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * One bound of the availability window. The value lives in the draft as an ISO timestamp and is
+ * converted to the local `datetime-local` shape the browser understands, so a manager always sees
+ * the date in their own timezone.
+ */
+function WindowInput({
+  id,
+  label,
+  icon,
+  value,
+  min,
+  max,
+  onChange,
+  disabled,
+}: {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  value: string | null;
+  min?: string;
+  max?: string;
+  onChange: (iso: string | null) => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="datetime-local"
+        value={toDateTimeLocalValue(value)}
+        min={min}
+        max={max}
+        onChange={(event) => onChange(fromDateTimeLocalValue(event.target.value))}
+        disabled={disabled}
+        aria-describedby={`${id}-hint`}
+      />
+      <p id={`${id}-hint`} className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon}
+        {value ? (
+          <>
+            <span className="min-w-0 flex-1 truncate">Your local time</span>
+            <button
+              type="button"
+              className="shrink-0 font-medium text-primary underline underline-offset-2"
+              onClick={() => onChange(null)}
+              disabled={disabled}
+            >
+              Clear
+            </button>
+          </>
+        ) : (
+          "Not set"
+        )}
+      </p>
     </div>
   );
 }

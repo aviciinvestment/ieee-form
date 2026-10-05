@@ -4,7 +4,8 @@ import { getRequestEmail, isMainAdmin } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
-export async function PUT(req: Request, { params }: { params: { param: string } }) {
+/** Both handlers address a manager by its row id, the same value the dashboard already holds. */
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
     const userEmail = getRequestEmail(req);
     if (!isMainAdmin(userEmail)) {
@@ -18,14 +19,18 @@ export async function PUT(req: Request, { params }: { params: { param: string } 
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const { trackName } = body;
+    const trackName = typeof body.trackName === "string" ? body.trackName.trim() : "";
     if (!trackName) {
       return NextResponse.json({ error: "A learning track must be assigned to the manager." }, { status: 400 });
     }
+    const track = await prisma.learningTrack.findUnique({ where: { name: trackName } });
+    if (!track) {
+      return NextResponse.json({ error: "That learning track does not exist." }, { status: 400 });
+    }
 
     const updatedManager = await prisma.communityManager.update({
-      where: { id: params.param },
-      data: { trackName },
+      where: { id: params.id },
+      data: { trackName: track.name },
     });
     return NextResponse.json({ message: "Manager track updated successfully", data: updatedManager });
   } catch (error) {
@@ -34,16 +39,14 @@ export async function PUT(req: Request, { params }: { params: { param: string } 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { param: string } }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
     const userEmail = getRequestEmail(req);
     if (!isMainAdmin(userEmail)) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
 
-    await prisma.communityManager.delete({
-      where: { email: params.param.toLowerCase() },
-    });
+    await prisma.communityManager.delete({ where: { id: params.id } });
     return NextResponse.json({ message: "Manager removed successfully." });
   } catch (error) {
     console.error("Delete Manager Error:", error);

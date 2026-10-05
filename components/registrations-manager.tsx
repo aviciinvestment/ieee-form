@@ -124,7 +124,7 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
         const res = await fetch(`/api/registrations?${params.toString()}`, { headers: emailHeader(email) });
         const data = await res.json().catch(() => ({}));
         if (!active) return;
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401 || data.code === "NO_EMAIL" || data.code === "NO_ROLE") {
           window.location.href = "/login";
           return;
         }

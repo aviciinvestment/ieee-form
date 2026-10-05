@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowLeft, Award, Bot, CheckCircle2, CircleSlash, Clock, FileText, Loader2, Send, Upload, X } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { AuthSignIn } from "@/components/auth-sign-in";
+import { QuizWindowBadge } from "@/components/quiz-window-badge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,6 +27,9 @@ type QuizSummaryView = {
   totalPoints: number;
   /** Time limit for one attempt in minutes; 0 means unlimited. */
   durationMinutes: number;
+  /** Availability window bounds as ISO strings; null means no bound on that side. */
+  opensAt?: string | null;
+  closesAt?: string | null;
 };
 
 type TakePayload = {
@@ -282,6 +286,12 @@ export function QuizTaker({ quizId }: { quizId: string }) {
               <Badge variant="outline">{payload.quiz.questionCount} questions</Badge>
               <Badge variant="outline">{payload.quiz.totalPoints} points</Badge>
               <Badge variant="secondary">{payload.quiz.trackName}</Badge>
+              <QuizWindowBadge
+                window={{
+                  opensAt: payload.quiz.opensAt ?? null,
+                  closesAt: payload.quiz.closesAt ?? null,
+                }}
+              />
               {remainingSeconds !== null ? (
                 <Badge variant={expired || remainingSeconds <= 60 ? "destructive" : "outline"} aria-live="polite">
                   <Clock className="mr-1 h-3.5 w-3.5" />

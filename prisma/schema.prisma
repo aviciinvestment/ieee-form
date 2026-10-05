@@ -53,6 +53,10 @@ model Quiz {
   published   Boolean  @default(false)
   // Time limit for one attempt, in minutes. 0 means the participant gets unlimited time.
   durationMinutes Int  @default(0)
+  // Availability window. A null bound means "no bound on that side", so leaving both
+  // null keeps a quiz open for as long as it stays published.
+  opensAt     DateTime?
+  closesAt    DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -60,6 +64,8 @@ model Quiz {
   attempts  QuizAttempt[]
 
   @@index([trackName])
+  // The participant quiz list always filters on track + published.
+  @@index([trackName, published])
 }
 
 model Question {

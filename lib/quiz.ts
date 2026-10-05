@@ -1,5 +1,6 @@
 import { gradeWrittenAnswer, isAiGradingEnabled } from "@/lib/nvidia";
 import { MAX_QUIZ_DURATION_MINUTES } from "@/lib/types";
+import { parseWindowBound, validateWindowOrder } from "@/lib/quiz-window";
 
 export const QUESTION_TYPES = ["OBJECTIVE", "SHORT_TEXT", "LONG_TEXT"] as const;
 export type QuestionTypeValue = (typeof QUESTION_TYPES)[number];
@@ -41,6 +42,9 @@ export type QuizInput = {
   published: boolean;
   /** Time limit for one attempt in minutes; 0 means unlimited. */
   durationMinutes: number;
+  /** Availability window bounds; null means the quiz is not bounded on that side. */
+  opensAt: Date | null;
+  closesAt: Date | null;
   questions: QuestionInput[];
 };
 
@@ -76,6 +80,23 @@ export function normalizeDurationMinutes(value: unknown): number {
   const minutes = Math.trunc(Number(value));
   if (!Number.isFinite(minutes) || minutes <= 0) return 0;
   return Math.min(minutes, MAX_QUIZ_DURATION_MINUTES);
+}
+
+/**
+ * Reads the availability window out of a payload. Both bounds are optional, but a window that
+ * closes before it opens is rejected here rather than quietly stored as a quiz nobody can open.
+ */
+export function parseQuizWindow(body: Record<string, unknown>): {
+  ok: true;
+  value: { opensAt: Date | null; closesAt: Date | null };
+} | { ok: false; error: string } {
+  const opensAt = parseWindowBound(body.opensAt);
+  const closesAt = parseWindowBound(body.closesAt);
+
+  const orderError = validateWindowOrder(opensAt, closesAt);
+  if (orderError) return { ok: false, error: orderError };
+
+  return { ok: true, value: { opensAt, closesAt } };
 }
 
 export function normalizeQuestionType(value: unknown): QuestionTypeValue {
@@ -134,6 +155,12 @@ export function parseQuizInput(
   const description = asString(raw.description, 2000);
   const published = raw.published === true;
   const durationMinutes = normalizeDurationMinutes(raw.durationMinutes);
+
+  const window = parseQuizWindow(raw);
+  if (!window.ok) {
+    return { ok: false, error: window.error };
+  }
+  const { opensAt, closesAt } = window.value;
 
   const rawQuestions = Array.isArray(raw.questions) ? raw.questions : [];
   if (rawQuestions.length === 0) {
@@ -205,7 +232,7 @@ export function parseQuizInput(
     });
   }
 
-  return { ok: true, value: { title, description, published, durationMinutes, questions } };
+  return { ok: true, value: { title, description, published, durationMinutes, opensAt, closesAt, questions } };
 }
 
 export function totalPoints(questions: { points: number }[]): number {

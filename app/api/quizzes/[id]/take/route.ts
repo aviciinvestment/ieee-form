@@ -5,6 +5,7 @@ import { getParticipantAccess } from "@/lib/auth";
 import { buildAttemptResult, buildPendingResult, totalPoints } from "@/lib/quiz";
 import { closeAttempt } from "@/lib/attempts";
 import { attemptDeadline, isTimeUp, remainingSeconds } from "@/lib/quiz-timer";
+import { checkCanStartAttempt } from "@/lib/quiz-window";
 
 export const dynamic = "force-dynamic";
 
@@ -41,6 +42,8 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       description: quiz.description,
       trackName: quiz.trackName,
       durationMinutes: quiz.durationMinutes,
+      opensAt: quiz.opensAt?.toISOString() ?? null,
+      closesAt: quiz.closesAt?.toISOString() ?? null,
       questionCount: quiz.questions.length,
       totalPoints: totalPoints(quiz.questions),
     };
@@ -79,6 +82,18 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           ? buildAttemptResult(closed, quiz.questions)
           : buildPendingResult(closed);
       return NextResponse.json({ data: { quiz: quizSummary, attempted: true, result } });
+    }
+
+    // The availability window gates new attempts only. Somebody who is already inside their own
+    // countdown is never pulled out mid-quiz by the closing time.
+    if (!found) {
+      const window = checkCanStartAttempt({
+        opensAt: quiz.opensAt?.toISOString() ?? null,
+        closesAt: quiz.closesAt?.toISOString() ?? null,
+      });
+      if (!window.ok) {
+        return NextResponse.json({ error: window.reason }, { status: 403 });
+      }
     }
 
     // Opening the quiz starts the clock. Reloading resumes with whatever time is left.

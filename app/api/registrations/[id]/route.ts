@@ -1,45 +1,43 @@
 import { NextResponse } from "next/server";
+import type { Registration } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin, readRole } from "@/lib/auth";
+import {
+  accessDeniedResponse,
+  getManagerAccess,
+  getRequestEmail,
+  isMainAdmin,
+  type ManagerAccess,
+} from "@/lib/auth";
 import { parseRegistrationInput } from "@/lib/registrations";
 
 export const dynamic = "force-dynamic";
 
-type AccessResult =
-  | { ok: true; scope: { techSkill: string } | null }
-  | { ok: false; error: string; status: number };
+type ScopedRead =
+  | { ok: true; registration: Registration; isAdmin: boolean }
+  | { ok: false; status: number; error: string; code?: string };
 
-async function resolveAccess(req: Request): Promise<AccessResult> {
-  const userEmail = getRequestEmail(req);
-  if (!userEmail) {
-    return { ok: false, error: "Unauthorized: Missing email authentication header.", status: 401 };
+/**
+ * Reads one registration, refusing anything outside the caller's track. Managers can only ever see
+ * their own track, so the scope check happens on the read rather than on the write.
+ */
+async function findScopedRegistration(
+  id: string,
+  access: Extract<ManagerAccess, { ok: true }>
+): Promise<ScopedRead> {
+  const existing = await prisma.registration.findFirst({
+    where: { id, ...(access.role === "manager" ? { techSkill: access.trackName } : {}) },
+  });
+  if (!existing) {
+    return { ok: false, status: 404, error: "This user does not exist or is outside your track." };
   }
-
-  const role = await readRole(userEmail);
-  if (role.role === "none") {
-    return { ok: false, error: "Forbidden: You do not have permission to perform this action.", status: 403 };
-  }
-
-  if (role.role === "manager" && !role.trackName) {
-    return {
-      ok: false,
-      error: "Forbidden: No learning track is assigned to your account yet. Ask the admin to assign one.",
-      status: 403,
-    };
-  }
-
-  return { ok: true, scope: role.role === "manager" ? { techSkill: role.trackName as string } : null };
-}
-
-async function findScopedRegistration(id: string, scope: { techSkill: string } | null) {
-  return prisma.registration.findFirst({ where: { id, ...(scope ? { techSkill: scope.techSkill } : {}) } });
+  return { ok: true, registration: existing, isAdmin: access.role === "admin" };
 }
 
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
-    const access = await resolveAccess(req);
+    const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     let body: unknown;
@@ -49,14 +47,15 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const existing = await findScopedRegistration(params.id, access.scope);
-    if (!existing) {
-      return NextResponse.json({ error: "This user does not exist or is outside your track." }, { status: 404 });
+    const found = await findScopedRegistration(params.id, access);
+    if (!found.ok) {
+      return accessDeniedResponse(found);
     }
+    const existing = found.registration;
 
     const parsed = parseRegistrationInput(body, {
       partial: true,
-      lockedTechSkill: access.scope?.techSkill,
+      lockedTechSkill: access.role === "manager" ? access.trackName : undefined,
     });
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });
@@ -83,18 +82,18 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const access = await resolveAccess(req);
+    const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
-    const existing = await findScopedRegistration(params.id, access.scope);
-    if (!existing) {
-      return NextResponse.json({ error: "This user does not exist or is outside your track." }, { status: 404 });
+    const found = await findScopedRegistration(params.id, access);
+    if (!found.ok) {
+      return accessDeniedResponse(found);
     }
 
-    await prisma.registration.delete({ where: { id: existing.id } });
-    return NextResponse.json({ message: "User deleted successfully", id: existing.id });
+    await prisma.registration.delete({ where: { id: found.registration.id } });
+    return NextResponse.json({ message: "User deleted successfully", id: found.registration.id });
   } catch (error) {
     console.error("Delete Registration Error:", error);
     return NextResponse.json({ error: "Internal server error while deleting the user." }, { status: 500 });
@@ -103,17 +102,20 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
 export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
-    const access = await resolveAccess(req);
+    const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
-    const existing = await findScopedRegistration(params.id, access.scope);
-    if (!existing) {
-      return NextResponse.json({ error: "This user does not exist or is outside your track." }, { status: 404 });
+    const found = await findScopedRegistration(params.id, access);
+    if (!found.ok) {
+      return accessDeniedResponse(found);
     }
 
-    return NextResponse.json({ data: existing, isAdmin: isMainAdmin(getRequestEmail(req)) });
+    return NextResponse.json({
+      data: found.registration,
+      isAdmin: found.isAdmin || isMainAdmin(getRequestEmail(req)),
+    });
   } catch (error) {
     console.error("Fetch Registration Error:", error);
     return NextResponse.json({ error: "Internal server error while fetching the user." }, { status: 500 });

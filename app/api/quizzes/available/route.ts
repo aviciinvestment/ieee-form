@@ -48,6 +48,10 @@ export async function GET(req: Request) {
           description: quiz.description,
           trackName: quiz.trackName,
           durationMinutes: quiz.durationMinutes,
+          // Quizzes outside their availability window are still listed so a participant can see
+          // when a quiz opens, or that it has already closed.
+          opensAt: quiz.opensAt?.toISOString() ?? null,
+          closesAt: quiz.closesAt?.toISOString() ?? null,
           questionCount: quiz.questions.length,
           totalPoints: totalPoints(quiz.questions),
           objectiveCount: quiz.questions.filter((question) => question.type === "OBJECTIVE").length,

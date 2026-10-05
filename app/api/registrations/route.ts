@@ -1,47 +1,23 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin, readRole } from "@/lib/auth";
+import { accessDeniedResponse, getManagerAccess } from "@/lib/auth";
 import { buildRegistrationListQuery, parseRegistrationInput } from "@/lib/registrations";
 
 export const dynamic = "force-dynamic";
 
-type ScopeResult =
-  | { ok: true; role: "admin" | "manager"; scope: { techSkill: string } | null }
-  | { ok: false; error: string; status: number };
-
-async function resolveScope(req: Request): Promise<ScopeResult> {
-  const userEmail = getRequestEmail(req);
-  if (!userEmail) {
-    return { ok: false, error: "Unauthorized: Missing email authentication header.", status: 401 };
-  }
-
-  const role = await readRole(userEmail);
-  if (role.role === "none") {
-    return { ok: false, error: "Forbidden: You do not have permission to access this page.", status: 403 };
-  }
-
-  if (role.role === "manager" && !role.trackName) {
-    return {
-      ok: false,
-      error: "Forbidden: No learning track is assigned to your account yet. Ask the admin to assign one.",
-      status: 403,
-    };
-  }
-
-  const scope = role.role === "manager" ? { techSkill: role.trackName as string } : null;
-  return { ok: true, role: isMainAdmin(userEmail) ? "admin" : "manager", scope };
-}
-
 export async function GET(req: Request) {
   try {
-    const resolved = await resolveScope(req);
-    if (!resolved.ok) {
-      return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+    const access = await getManagerAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
+
+    // A manager is pinned to their own track; an admin sees everything unless a track is asked for.
+    const scope = access.role === "manager" ? { techSkill: access.trackName } : undefined;
 
     const { where, orderBy, take, skip, sort, order, search, query } = buildRegistrationListQuery(
       new URL(req.url).searchParams,
-      resolved.scope ?? undefined
+      scope
     );
 
     const [registrations, total] = await Promise.all([
@@ -58,7 +34,7 @@ export async function GET(req: Request) {
       order,
       field: search,
       query,
-      scope: resolved.scope?.techSkill ?? null,
+      scope: scope?.techSkill ?? null,
     });
   } catch (error) {
     console.error("Fetch Registrations Error:", error);
@@ -71,10 +47,11 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const resolved = await resolveScope(req);
-    if (!resolved.ok) {
-      return NextResponse.json({ error: resolved.error }, { status: resolved.status });
+    const access = await getManagerAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
+    const scope = access.role === "manager" ? { techSkill: access.trackName } : undefined;
 
     let body: unknown;
     try {
@@ -84,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     const parsed = parseRegistrationInput(body, {
-      lockedTechSkill: resolved.scope?.techSkill,
+      lockedTechSkill: scope?.techSkill,
     });
     if (!parsed.ok) {
       return NextResponse.json({ error: parsed.error }, { status: 400 });

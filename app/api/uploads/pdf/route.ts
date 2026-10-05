@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getManagerAccess, getParticipantAccess, getRequestEmail } from "@/lib/auth";
+import { accessDeniedResponse, getManagerAccess, getParticipantAccess, getRequestEmail } from "@/lib/auth";
 import { isCloudinaryConfigured, uploadPdf } from "@/lib/cloudinary";
 import { assertPdfWithinPageLimit, extractPdfText, MAX_PDF_BYTES, MAX_PDF_PAGES, PdfError } from "@/lib/pdf";
 
@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 const MAX_UPLOADS_PER_HOUR = 40;
 
 /** Managers and participants both upload through here; nothing else may call the upload. */
-async function canUpload(req: Request): Promise<{ ok: true; role: "admin" | "manager" | "participant" } | { ok: false; status: number; error: string }> {
+async function canUpload(req: Request): Promise<{ ok: true; role: "admin" | "manager" | "participant" } | { ok: false; status: number; error: string; code?: string }> {
   if (!getRequestEmail(req)) {
     return { ok: false, status: 401, error: "Unauthorized: Missing email authentication header." };
   }
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   try {
     const access = await canUpload(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     if (!isCloudinaryConfigured()) {

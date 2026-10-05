@@ -60,6 +60,10 @@ export type QuizSummary = {
   published: boolean;
   /** Time limit for one attempt in minutes; 0 means unlimited. */
   durationMinutes: number;
+  /** When the quiz starts accepting attempts; null means as soon as it is published. */
+  opensAt: string | null;
+  /** When the quiz stops accepting new attempts; null means it never closes on its own. */
+  closesAt: string | null;
   questionCount: number;
   totalPoints: number;
   attemptCount: number;
@@ -74,6 +78,8 @@ export type QuizDetail = {
   trackName: string;
   published: boolean;
   durationMinutes: number;
+  opensAt: string | null;
+  closesAt: string | null;
   attemptCount: number;
   locked: boolean;
   questions: {
@@ -118,6 +124,9 @@ export type QuizDraft = {
   trackName: string;
   /** Time limit for one attempt in minutes; 0 means unlimited. */
   durationMinutes: number;
+  /** Availability window bounds as ISO strings; null means no bound on that side. */
+  opensAt: string | null;
+  closesAt: string | null;
   questions: QuestionDraft[];
 };
 
@@ -168,6 +177,10 @@ export type AvailableQuiz = {
   trackName: string;
   /** Time limit for one attempt in minutes; 0 means unlimited. */
   durationMinutes: number;
+  /** When the quiz starts accepting attempts; null means as soon as it is published. */
+  opensAt: string | null;
+  /** When the quiz stops accepting new attempts; null means it never closes on its own. */
+  closesAt: string | null;
   questionCount: number;
   totalPoints: number;
   objectiveCount: number;

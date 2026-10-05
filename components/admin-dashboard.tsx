@@ -87,20 +87,28 @@ export function AdminDashboard() {
   }, [state, portalEmail]);
 
   async function addManager() {
-    if (!newManagerEmail.trim()) {
+    const email = newManagerEmail.trim().toLowerCase();
+    if (!email) {
       showAlert("Missing email", "Please enter a Gmail address for the manager.", "error");
       return;
     }
+    // A manager without a track cannot open any part of their dashboard, so the track is required.
+    if (!newManagerTrack) {
+      showAlert("Missing track", "Choose the learning track this manager will look after.", "error");
+      return;
+    }
+
     setManagerBusy(true);
     try {
       const res = await fetch("/api/managers", {
         method: "POST",
         headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
-        body: JSON.stringify({ email: newManagerEmail.trim(), trackName: newManagerTrack || "" }),
+        body: JSON.stringify({ email, trackName: newManagerTrack }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setNewManagerEmail("");
+        setNewManagerTrack("");
         await loadManagers();
         showAlert("Success", data.message || "Manager added successfully", "success");
       } else {
@@ -139,15 +147,19 @@ export function AdminDashboard() {
     }
   }
 
-  async function removeManager(email: string) {
-    const ok = await confirm(`Remove ${email} as a community manager?`, "They will lose access to the manager dashboard immediately.", {
-      confirmLabel: "Remove manager",
-      destructive: true,
-    });
+  async function removeManager(manager: CommunityManager) {
+    const ok = await confirm(
+      `Remove ${manager.email} as a community manager?`,
+      "They will lose access to the manager dashboard immediately.",
+      {
+        confirmLabel: "Remove manager",
+        destructive: true,
+      }
+    );
     if (!ok) return;
     setManagerBusy(true);
     try {
-      const res = await fetch(`/api/managers/${encodeURIComponent(email)}`, {
+      const res = await fetch(`/api/managers/${encodeURIComponent(manager.id)}`, {
         method: "DELETE",
         headers: emailHeader(portalEmail),
       });
@@ -307,7 +319,10 @@ export function AdminDashboard() {
         <Card className="glass-card">
           <CardHeader>
             <CardTitle className="text-lg">Manage Community Managers</CardTitle>
-            <CardDescription>Add or remove community managers who can view the dashboard data.</CardDescription>
+            <CardDescription>
+              Add or remove community managers who can view the dashboard data. Every manager must be assigned a
+              learning track before they can sign in.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-3">
@@ -330,10 +345,19 @@ export function AdminDashboard() {
                   ))}
                 </SelectContent>
               </Select>
-              <Button onClick={addManager} disabled={managerBusy} className="w-full">
+              <Button
+                onClick={addManager}
+                disabled={managerBusy || !newManagerEmail.trim() || !newManagerTrack}
+                className="w-full"
+              >
                 {managerBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Add
               </Button>
             </div>
+            {trackOptions.length === 0 ? (
+              <p className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
+                Create a learning track below first. A manager cannot be authorized without one.
+              </p>
+            ) : null}
 
             <div>
               <h4 className="mb-2 text-sm font-semibold">
@@ -345,21 +369,34 @@ export function AdminDashboard() {
               <ul className="space-y-2">
                 {managers.length === 0 ? (
                   <li className="text-sm text-muted-foreground">No community managers yet.</li>
-                ) : (
+                ) :
                   managers.map((m) => (
                     <li
                       key={m.id}
                       className="flex flex-col gap-2 rounded-md border border-border bg-background/60 p-3 sm:flex-row sm:items-center"
                     >
-                      <span className="flex-1 break-all text-sm">{m.email}</span>
+                      <div className="min-w-0 flex-1">
+                        <span className="block break-all text-sm">{m.email}</span>
+                        {!m.trackName ? (
+                          <span className="mt-1 block text-xs font-medium text-red-600 dark:text-red-400">
+                            No track assigned — this manager cannot sign in yet.
+                          </span>
+                        ) : null}
+                      </div>
                       <Select
                         value={managerTrackEdits[m.id] ?? m.trackName}
                         onValueChange={(v) => setManagerTrackEdits((prev) => ({ ...prev, [m.id]: v }))}
                       >
-                        <SelectTrigger className="w-full sm:w-56" aria-label={`Track for ${m.email}`}>
+                        <SelectTrigger
+                          className="w-full sm:w-56"
+                          aria-label={`Track for ${m.email}`}
+                        >
                           <SelectValue placeholder="Select track" />
                         </SelectTrigger>
                         <SelectContent>
+                          <SelectItem value="__unset" disabled>
+                            Select track
+                          </SelectItem>
                           {trackOptions.map((name) => (
                             <SelectItem key={name} value={name}>
                               {name}
@@ -372,14 +409,14 @@ export function AdminDashboard() {
                           size="sm"
                           variant="secondary"
                           onClick={() => updateManager(m.id, managerTrackEdits[m.id] ?? m.trackName)}
-                          disabled={managerBusy}
+                          disabled={managerBusy || !(managerTrackEdits[m.id] ?? m.trackName)}
                         >
                           <Save className="h-4 w-4" /> Save
                         </Button>
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => removeManager(m.email)}
+                          onClick={() => removeManager(m)}
                           disabled={managerBusy}
                         >
                           <Trash2 className="h-4 w-4" /> Remove
@@ -387,10 +424,11 @@ export function AdminDashboard() {
                       </div>
                     </li>
                   ))
-                )}
+                }
               </ul>
             </div>
           </CardContent>
+
         </Card>
 
         <Card className="glass-card">

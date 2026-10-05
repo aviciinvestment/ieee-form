@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getManagerAccess } from "@/lib/auth";
+import { accessDeniedResponse, getManagerAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +13,7 @@ export async function POST(req: Request, { params }: { params: { id: string } })
   try {
     const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     let body: unknown;
@@ -109,7 +109,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
   try {
     const access = await getManagerAccess(req);
     if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status });
+      return accessDeniedResponse(access);
     }
 
     let attemptId = "";

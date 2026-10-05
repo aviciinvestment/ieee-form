@@ -239,9 +239,14 @@ showAlert("Registration issue", data.error || "Something went wrong. Please try 
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {submitting ? "Registering…" : "Register & Join WhatsApp Group"}
             </Button>
-            <Button variant="outline" size="sm" className="w-full gap-2" asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-auto min-h-9 w-full gap-2 whitespace-normal py-2 text-center leading-snug"
+              asChild
+            >
               <Link href="/quiz">
-                <ClipboardList className="h-4 w-4" /> Already registered? Take your track quizzes
+                <ClipboardList className="h-4 w-4 shrink-0" /> Already registered? Take your track quizzes
               </Link>
             </Button>
           </CardFooter>

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { emptyQuestion } from "@/components/question-editor";
 import { QuizEditor } from "@/components/quiz-editor";
+import { QuizWindowBadge } from "@/components/quiz-window-badge";
 import { useModal } from "@/components/use-modal";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { formatDateTime } from "@/lib/format";
+import { parseWindowBound, validateWindowOrder } from "@/lib/quiz-window";
 import {
   GRADING_METHOD_LABELS,
   type QuestionKind,
@@ -89,11 +91,12 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
         headers: emailHeader(email),
       });
       const data = await res.json().catch(() => ({}));
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401 || data.code === "NO_EMAIL" || data.code === "NO_ROLE") {
         window.location.href = "/login";
         return;
       }
       if (!res.ok) {
+        // NO_TRACK and other 403s are rendered in place; bouncing to /login would loop forever.
         setQuizzes([]);
         setError(data.error || "Failed to load quizzes.");
         return;
@@ -131,6 +134,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
       published: false,
       trackName: lockedTrack ?? trackOptions[0] ?? "",
       durationMinutes: 0,
+      opensAt: null,
+      closesAt: null,
       questions: [emptyQuestion()],
     });
   }
@@ -154,6 +159,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
         published: quiz.published,
         trackName: quiz.trackName,
         durationMinutes: quiz.durationMinutes ?? 0,
+        opensAt: quiz.opensAt ?? null,
+        closesAt: quiz.closesAt ?? null,
         questions: quiz.questions.map((question) => ({
           key: question.id,
           id: question.id,
@@ -188,6 +195,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
       published: target.published,
       trackName: target.trackName,
       durationMinutes: target.durationMinutes,
+      opensAt: target.opensAt,
+      closesAt: target.closesAt,
       questions: target.questions.map((question: QuestionDraft) => ({
         id: question.id,
         prompt: question.prompt,
@@ -210,6 +219,14 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     }
     if (!lockedTrack && !draft.trackName) {
       setDraftError("Choose the learning track this quiz belongs to.");
+      return;
+    }
+    const windowError = validateWindowOrder(
+      parseWindowBound(draft.opensAt),
+      parseWindowBound(draft.closesAt)
+    );
+    if (windowError) {
+      setDraftError(windowError);
       return;
     }
 
@@ -251,6 +268,9 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
           published: !quiz.published,
           trackName: quiz.trackName,
           durationMinutes: quiz.durationMinutes,
+          // Resent so toggling the publish state can never drop the availability window.
+          opensAt: quiz.opensAt ?? null,
+          closesAt: quiz.closesAt ?? null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -487,6 +507,7 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                         <Clock className="h-3 w-3" />
                         {quiz.durationMinutes > 0 ? `${quiz.durationMinutes} min limit` : "No time limit"}
                       </Badge>
+                      <QuizWindowBadge window={quiz} alwaysShow />
                     </div>
                     {quiz.description ? (
                       <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{quiz.description}</p>

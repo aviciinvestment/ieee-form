@@ -40,13 +40,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "A valid Gmail address is required." }, { status: 400 });
     }
 
+    // A manager with no track cannot reach a single screen of their dashboard, so the track is
+    // mandatory here instead of leaving the account in a half-authorized state.
+    const track = typeof trackName === "string" ? trackName.trim() : "";
+    if (!track) {
+      return NextResponse.json(
+        { error: "Choose the learning track this manager will be responsible for." },
+        { status: 400 }
+      );
+    }
+    const learningTrack = await prisma.learningTrack.findUnique({ where: { name: track } });
+    if (!learningTrack) {
+      return NextResponse.json({ error: "That learning track does not exist." }, { status: 400 });
+    }
+
     const existing = await prisma.communityManager.findUnique({ where: { email: email.toLowerCase() } });
     if (existing) {
       return NextResponse.json({ error: "This user is already a community manager." }, { status: 400 });
     }
 
     const newManager = await prisma.communityManager.create({
-      data: { email: email.toLowerCase(), trackName: trackName || "" },
+      data: { email: email.toLowerCase(), trackName: learningTrack.name },
     });
 
     return NextResponse.json({ message: "Manager added successfully", data: newManager }, { status: 201 });
