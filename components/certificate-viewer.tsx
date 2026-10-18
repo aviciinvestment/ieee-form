@@ -135,84 +135,81 @@ export function CertificateViewer({
           }}
         >
           {/* Top-Right Logo Section */}
-          <div className="absolute top-[3%] sm:top-[4%] md:top-[5%] right-[3%] sm:right-[4%] md:right-[5%] flex items-center gap-1.5 sm:gap-2.5 z-10">
+          <div className="absolute top-[2.5%] sm:top-[3.5%] md:top-[4.5%] right-[3%] sm:right-[4%] md:right-[5%] flex items-center gap-1 sm:gap-2 z-10">
             {template.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={template.logoUrl}
                 alt="Logo"
-                className="h-3.5 sm:h-6 md:h-8 max-w-[80px] sm:max-w-[120px] object-contain"
+                className="h-3 sm:h-5 md:h-7 max-w-[70px] sm:max-w-[110px] object-contain"
               />
             ) : (
               /* Default geometric logo matching the original Alpha Capital symbol */
               <svg
                 viewBox="0 0 32 32"
-                className="w-3.5 h-3.5 sm:w-5 sm:h-5 md:w-7 md:h-7 text-white fill-current shrink-0"
+                className="w-3 h-3 sm:w-4.5 sm:h-4.5 md:w-6 md:h-6 text-white fill-current shrink-0"
               >
                 <polygon points="16,2 26,22 22,22 16,10 10,22 6,22" />
                 <polygon points="16,14 20,22 12,22" opacity="0.6" />
                 <polygon points="16,24 23,30 9,30" opacity="0.85" />
               </svg>
             )}
-            <span className="text-[7.5px] sm:text-[10px] md:text-sm font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-white/95">
+            <span className="text-[7px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-white/95">
               {template.logoName || "ALPHA CAPITAL"}
             </span>
           </div>
 
           {/* Center-Right Certificate Content Column */}
-          <div className="absolute top-[6%] sm:top-[8.5%] md:top-[10.5%] bottom-[3%] sm:bottom-[4.5%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
-            {/* 1. Header Group: Badge, Title, Subtitle */}
-            <div className="flex flex-col items-center w-full">
+          <div className="absolute top-[12.5%] sm:top-[14%] md:top-[15%] bottom-[4%] sm:bottom-[5%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
+            {/* Top Group: Badge, Title, Subtitle, Candidate Capsule & Track Pill */}
+            <div className="flex flex-col items-center w-full space-y-0.5 sm:space-y-1 md:space-y-1.5">
               {/* Blue Phase Pill Badge */}
-              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-2 py-0.5 sm:px-3 sm:py-1 shadow-sm mb-0.5 sm:mb-1.5">
-                <span className="text-[7px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white">
+              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-1.5 py-0.5 sm:px-3 sm:py-1 shadow-sm">
+                <span className="text-[6.5px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white">
                   {template.badgeText || "PHASE 1"}
                 </span>
               </div>
 
               {/* Title */}
-              <h2 className="text-[10px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.22] sm:leading-[1.26] md:leading-[1.3] whitespace-pre-line drop-shadow-sm my-0.5 sm:my-1">
+              <h2 className="text-[9.5px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.18] sm:leading-[1.24] md:leading-[1.28] whitespace-pre-line drop-shadow-sm my-0 sm:my-0.5">
                 {template.title || "Certificate\nOf Achievement"}
               </h2>
 
               {/* Subtitle */}
-              <p className="text-[6.5px] sm:text-[9.5px] md:text-[12px] font-normal text-slate-300 tracking-wide leading-normal">
+              <p className="text-[6px] sm:text-[9px] md:text-[11.5px] font-normal text-slate-300 tracking-wide leading-tight">
                 {template.subtitle || "Proudly presented to"}
               </p>
-            </div>
 
-            {/* 2. Recipient Group: Candidate Name Capsule & Track Pill */}
-            <div className="flex flex-col items-center w-full">
               {/* Candidate Name Capsule */}
               <div className="w-full max-w-[96%] sm:max-w-md py-0.5 sm:py-1.5 md:py-2 px-2.5 sm:px-4 md:px-5 rounded-full bg-black/45 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] backdrop-blur-sm transition-all flex items-center justify-center">
-                <span className="text-[9px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
+                <span className="text-[8.5px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
                   {candidateName}
                 </span>
               </div>
 
               {/* Chosen Learning Track Display */}
               {participant.techSkill ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm mt-0.5 sm:mt-1.5">
-                  <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
+                <div className="inline-flex items-center gap-1 px-2 py-0 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm">
+                  <span className="text-[5.5px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
                     {participant.techSkill} Track
                   </span>
                 </div>
               ) : null}
             </div>
 
-            {/* 3. Description Group: Full Body Text (No ellipses, cleanly accommodated) */}
-            <div className="w-full max-w-[96%] px-1 sm:px-2">
-              <p className="text-[6.5px] sm:text-[9px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.38] sm:leading-[1.5] md:leading-[1.55] font-normal">
+            {/* Description Body: Full Text (Reduced spacing, no ellipses) */}
+            <div className="w-full max-w-[96%] px-1 sm:px-2 my-0.5 sm:my-1">
+              <p className="text-[6.2px] sm:text-[8.5px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.34] sm:leading-[1.45] md:leading-[1.5] font-normal">
                 {template.bodyText}
               </p>
             </div>
 
-            {/* 4. Footer Group: Date and Signature Columns */}
+            {/* Footer: Date and Signature Columns */}
             <div className="w-full grid grid-cols-2 gap-2 sm:gap-6 md:gap-8 pt-0.5 sm:pt-1 pb-0.5 sm:pb-1">
               {/* Date Column */}
               <div className="flex flex-col items-center justify-end">
                 <div className="min-h-[14px] sm:min-h-[22px] md:min-h-[28px] flex items-center justify-center">
-                  <span className="font-serif italic text-[7.5px] sm:text-[10px] md:text-sm text-slate-200 tracking-wide">
+                  <span className="font-serif italic text-[7px] sm:text-[10px] md:text-sm text-slate-200 tracking-wide">
                     {template.dateText || "26 Aug 2025"}
                   </span>
                 </div>
