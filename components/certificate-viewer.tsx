@@ -193,7 +193,7 @@ export function CertificateViewer({
                 <polygon points="16,24 23,30 9,30" opacity="0.85" />
               </svg>
             )}
-            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate text-center py-0.5 leading-normal">
+            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate text-center leading-none">
               {template.logoName || "ALPHA CAPITAL"}
             </span>
           </div>
@@ -203,8 +203,8 @@ export function CertificateViewer({
             {/* Top Group: Badge, Title, Subtitle, Candidate Capsule & Track Pill */}
             <div className="flex flex-col items-center w-full space-y-0.5 sm:space-y-1 md:space-y-1.5">
               {/* Blue Phase Pill Badge */}
-              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-1.5 py-0.5 sm:px-3 sm:py-1 shadow-sm">
-                <span className="text-[6.5px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white leading-normal">
+              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-2 py-0.5 sm:px-2.5 sm:py-1 shadow-sm">
+                <span className="text-[6.5px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white leading-none">
                   {template.badgeText || "PHASE 1"}
                 </span>
               </div>
@@ -220,16 +220,16 @@ export function CertificateViewer({
               </p>
 
               {/* Candidate Name Capsule */}
-              <div className="w-full max-w-[96%] sm:max-w-md py-1 sm:py-1.5 md:py-2 px-3 sm:px-4 md:px-5 rounded-full bg-black/60 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] transition-all flex items-center justify-center">
-                <span className={`${nameClass} font-bold text-white tracking-wide truncate max-w-full leading-normal py-0.5`}>
+              <div className="w-full max-w-[96%] sm:max-w-md py-1.5 sm:py-2 md:py-2.5 px-3 sm:px-4 md:px-5 rounded-full bg-black/60 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] transition-all flex items-center justify-center">
+                <span className={`${nameClass} font-bold text-white tracking-wide truncate max-w-full leading-none`}>
                   {candidateName}
                 </span>
               </div>
 
               {/* Chosen Learning Track Display */}
               {participant.techSkill ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm">
-                  <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal py-0.5">
+                <div className="inline-flex items-center justify-center gap-1 px-2.5 py-0.5 sm:px-3.5 sm:py-1 rounded-full bg-white/10 border border-white/20 shadow-sm">
+                  <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-none">
                     {participant.techSkill} Track
                   </span>
                 </div>
