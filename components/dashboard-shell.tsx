@@ -17,9 +17,9 @@ export function DashboardShell({ title, subtitle, onLogout, children }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen w-full overflow-x-hidden">
       <header className="fixed inset-x-0 top-0 z-40 border-b bg-background/85 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
+        <div className="mx-auto flex max-w-5xl items-center justify-between px-3 sm:px-4 py-3">
           <Button
             variant="ghost"
             size="icon"
@@ -35,7 +35,7 @@ export function DashboardShell({ title, subtitle, onLogout, children }: Props) {
         {menuOpen ? (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-            <div className="absolute right-4 z-50 mt-1 w-60 rounded-md border bg-popover p-1.5 shadow-lg">
+            <div className="absolute right-3 sm:right-4 z-50 mt-1 w-60 max-w-[calc(100vw-1.5rem)] rounded-md border bg-popover p-1.5 shadow-lg">
               <Link
                 href="/"
                 onClick={() => setMenuOpen(false)}
@@ -65,13 +65,13 @@ export function DashboardShell({ title, subtitle, onLogout, children }: Props) {
         ) : null}
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col px-4 pb-16 pt-14">
-        <div className="py-8 text-center">
-          <AppLogo size={80} />
-          <h1 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
-          {subtitle ? <p className="mt-2 text-sm text-muted-foreground">{subtitle}</p> : null}
+      <main className="mx-auto flex w-full max-w-5xl flex-col px-3 sm:px-4 pb-16 pt-14 min-w-0">
+        <div className="py-6 sm:py-8 text-center min-w-0 px-1">
+          <AppLogo size={70} />
+          <h1 className="mt-4 text-xl sm:text-2xl md:text-3xl font-bold tracking-tight break-words">{title}</h1>
+          {subtitle ? <p className="mt-2 text-xs sm:text-sm text-muted-foreground break-words max-w-xl mx-auto">{subtitle}</p> : null}
         </div>
-        {children}
+        <div className="w-full min-w-0">{children}</div>
       </main>
     </div>
   );

@@ -330,10 +330,10 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-md border bg-card p-4">
-        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_10rem_auto]">
-          <div className="relative">
+    <div className="space-y-4 w-full min-w-0">
+      <div className="rounded-md border bg-card p-3 sm:p-4 min-w-0 w-full">
+        <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_10rem_auto] min-w-0 w-full">
+          <div className="relative min-w-0 w-full">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={qInput}
@@ -368,7 +368,7 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
             </SelectContent>
           </Select>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full lg:w-auto">
             <Button onClick={openCreate} className="flex-1 lg:flex-none">
               <Plus className="h-4 w-4" /> Add user
             </Button>
@@ -377,13 +377,14 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
               onClick={() => setReloadKey((key) => key + 1)}
               disabled={loading}
               aria-label="Refresh registrations"
+              className="shrink-0"
             >
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </div>
 
-        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 min-w-0 w-full">
           <div className="space-y-1.5">
             <Label htmlFor="filter-from" className="text-xs text-muted-foreground">
               Registered from
@@ -469,19 +470,19 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
       ) : error ? (
         <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
       ) : (
-        <div className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-sm text-muted-foreground">
+        <div className="space-y-3 min-w-0 w-full">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0 w-full">
+            <p className="text-xs sm:text-sm text-muted-foreground">
               <span className="font-semibold text-foreground">{total}</span> matching user{total === 1 ? "" : "s"}
               {total > 0 ? ` · showing ${from}–${to}` : ""}
             </p>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <span>Rows</span>
+            <div className="flex items-center justify-between sm:justify-end gap-2 text-xs sm:text-sm text-muted-foreground">
+              <span>Rows per page</span>
               <Select
                 value={String(filters.limit)}
                 onValueChange={(value) => patchFilters({ limit: Math.min(Number(value) || DEFAULT_LIMIT, MAX_LIMIT) })}
               >
-                <SelectTrigger className="h-9 w-20" aria-label="Rows per page">
+                <SelectTrigger className="h-8 sm:h-9 w-20" aria-label="Rows per page">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -495,8 +496,8 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-md border bg-card">
-            <Table>
+          <div className="w-full max-w-full overflow-x-auto rounded-md border bg-card shadow-sm -webkit-overflow-scrolling-touch">
+            <Table className="min-w-[700px] w-full">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-12">#</TableHead>

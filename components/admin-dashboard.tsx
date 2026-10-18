@@ -308,7 +308,7 @@ export function AdminDashboard() {
 
   return (
     <DashboardShell title="ADMIN DASHBOARD" subtitle={subtitle} onLogout={logout}>
-      <div className="space-y-6">
+      <div className="space-y-6 w-full min-w-0">
         {portalEmail ? (
           <RegistrationsManager email={portalEmail} tracks={trackOptions} />
         ) : (
@@ -376,54 +376,58 @@ export function AdminDashboard() {
                   managers.map((m) => (
                     <li
                       key={m.id}
-                      className="flex flex-col gap-2 rounded-md border border-border bg-background/60 p-3 sm:flex-row sm:items-center"
+                      className="flex flex-col gap-2.5 rounded-md border border-border bg-background/60 p-3 sm:flex-row sm:items-center min-w-0 w-full"
                     >
                       <div className="min-w-0 flex-1">
-                        <span className="block break-all text-sm">{m.email}</span>
+                        <span className="block break-all text-sm font-medium">{m.email}</span>
                         {!m.trackName ? (
                           <span className="mt-1 block text-xs font-medium text-red-600 dark:text-red-400">
                             No track assigned — this manager cannot sign in yet.
                           </span>
                         ) : null}
                       </div>
-                      <Select
-                        value={managerTrackEdits[m.id] ?? m.trackName}
-                        onValueChange={(v) => setManagerTrackEdits((prev) => ({ ...prev, [m.id]: v }))}
-                      >
-                        <SelectTrigger
-                          className="w-full sm:w-56"
-                          aria-label={`Track for ${m.email}`}
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                        <Select
+                          value={managerTrackEdits[m.id] ?? m.trackName}
+                          onValueChange={(v) => setManagerTrackEdits((prev) => ({ ...prev, [m.id]: v }))}
                         >
-                          <SelectValue placeholder="Select track" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__unset" disabled>
-                            Select track
-                          </SelectItem>
-                          {trackOptions.map((name) => (
-                            <SelectItem key={name} value={name}>
-                              {name}
+                          <SelectTrigger
+                            className="w-full sm:w-56"
+                            aria-label={`Track for ${m.email}`}
+                          >
+                            <SelectValue placeholder="Select track" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__unset" disabled>
+                              Select track
                             </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <div className="flex gap-2">
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => updateManager(m.id, managerTrackEdits[m.id] ?? m.trackName)}
-                          disabled={managerBusy || !(managerTrackEdits[m.id] ?? m.trackName)}
-                        >
-                          <Save className="h-4 w-4" /> Save
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => removeManager(m)}
-                          disabled={managerBusy}
-                        >
-                          <Trash2 className="h-4 w-4" /> Remove
-                        </Button>
+                            {trackOptions.map((name) => (
+                              <SelectItem key={name} value={name}>
+                                {name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            className="flex-1 sm:flex-none text-xs"
+                            onClick={() => updateManager(m.id, managerTrackEdits[m.id] ?? m.trackName)}
+                            disabled={managerBusy || !(managerTrackEdits[m.id] ?? m.trackName)}
+                          >
+                            <Save className="h-4 w-4 mr-1" /> Save
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="flex-1 sm:flex-none text-xs"
+                            onClick={() => removeManager(m)}
+                            disabled={managerBusy}
+                          >
+                            <Trash2 className="h-4 w-4 mr-1" /> Remove
+                          </Button>
+                        </div>
                       </div>
                     </li>
                   ))
@@ -476,8 +480,8 @@ export function AdminDashboard() {
                   tracks.map((t) => {
                     const edit = trackEdits[t.id] ?? { name: t.name, whatsappLink: t.whatsappLink };
                     return (
-                      <li key={t.id} className="rounded-md border border-border bg-background/60 p-3 space-y-2">
-                        <div className="grid gap-2 sm:grid-cols-2">
+                      <li key={t.id} className="rounded-md border border-border bg-background/60 p-3 space-y-2.5 min-w-0 w-full">
+                        <div className="grid gap-2 sm:grid-cols-2 min-w-0 w-full">
                           <Input
                             type="text"
                             value={edit.name}
@@ -488,6 +492,7 @@ export function AdminDashboard() {
                               }))
                             }
                             aria-label={`Name of ${t.name}`}
+                            className="w-full min-w-0"
                           />
                           <Input
                             type="url"
@@ -499,14 +504,15 @@ export function AdminDashboard() {
                               }))
                             }
                             aria-label={`WhatsApp link for ${t.name}`}
+                            className="w-full min-w-0"
                           />
                         </div>
-                        <div className="flex justify-end gap-2">
-                          <Button size="sm" variant="secondary" onClick={() => updateTrack(t.id)} disabled={trackBusy}>
-                            <Save className="h-4 w-4" /> Save
+                        <div className="flex justify-end gap-2 w-full">
+                          <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs" onClick={() => updateTrack(t.id)} disabled={trackBusy}>
+                            <Save className="h-4 w-4 mr-1" /> Save
                           </Button>
-                          <Button size="sm" variant="destructive" onClick={() => deleteTrack(t.id)} disabled={trackBusy}>
-                            <Trash2 className="h-4 w-4" /> Delete
+                          <Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs" onClick={() => deleteTrack(t.id)} disabled={trackBusy}>
+                            <Trash2 className="h-4 w-4 mr-1" /> Delete
                           </Button>
                         </div>
                       </li>
@@ -526,17 +532,17 @@ export function AdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row min-w-0 w-full">
               <Input
                 type="url"
                 placeholder="WhatsApp support link (e.g. https://wa.me/2348000000000)"
                 value={supportLinkInput}
                 onChange={(e) => setSupportLinkInput(e.target.value)}
                 aria-label="Support WhatsApp link"
-                className="flex-1"
+                className="flex-1 min-w-0 w-full"
               />
-              <Button onClick={saveSupportLink} disabled={supportBusy} className="w-full sm:w-auto">
-                {supportBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Save
+              <Button onClick={saveSupportLink} disabled={supportBusy} className="w-full sm:w-auto shrink-0">
+                {supportBusy ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Save className="h-4 w-4 mr-1" />} Save
               </Button>
             </div>
             {supportLinkInput.trim() ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Download, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CertificateTemplate } from "@/lib/types";
@@ -26,6 +26,16 @@ export function CertificateViewer({
   const certRef = useRef<HTMLDivElement>(null);
   const [downloadingPng, setDownloadingPng] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [logoLoadError, setLogoLoadError] = useState(false);
+  const [sigLoadError, setSigLoadError] = useState(false);
+
+  useEffect(() => {
+    setLogoLoadError(false);
+  }, [template.logoUrl]);
+
+  useEffect(() => {
+    setSigLoadError(false);
+  }, [template.signatureUrl]);
 
   const candidateName = `${participant.firstName} ${participant.lastName}`.trim() || "Candidate Name";
   const fileBaseName = `${participant.firstName}_${participant.lastName}_Certificate`.replace(/\s+/g, "_");
@@ -135,26 +145,28 @@ export function CertificateViewer({
           }}
         >
           {/* Top-Right Logo Section */}
-          <div className="absolute top-[2.5%] sm:top-[3.5%] md:top-[4.5%] right-[3%] sm:right-[4%] md:right-[5%] flex items-center gap-1 sm:gap-2 z-10">
-            {template.logoUrl ? (
+          <div className="absolute top-[2%] sm:top-[3%] md:top-[4.5%] right-[2%] sm:right-[3%] md:right-[5%] flex items-center gap-1 sm:gap-2 z-10 max-w-[48%] overflow-hidden">
+            {template.logoUrl && !logoLoadError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={template.logoUrl}
                 alt="Logo"
-                className="h-3 sm:h-5 md:h-7 max-w-[70px] sm:max-w-[110px] object-contain"
+                crossOrigin="anonymous"
+                onError={() => setLogoLoadError(true)}
+                className="h-3.5 sm:h-5 md:h-7 max-w-[50px] sm:max-w-[90px] md:max-w-[120px] object-contain shrink-0"
               />
             ) : (
               /* Default geometric logo matching the original Alpha Capital symbol */
               <svg
                 viewBox="0 0 32 32"
-                className="w-3 h-3 sm:w-4.5 sm:h-4.5 md:w-6 md:h-6 text-white fill-current shrink-0"
+                className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 md:w-6 md:h-6 text-white fill-current shrink-0"
               >
                 <polygon points="16,2 26,22 22,22 16,10 10,22 6,22" />
                 <polygon points="16,14 20,22 12,22" opacity="0.6" />
                 <polygon points="16,24 23,30 9,30" opacity="0.85" />
               </svg>
             )}
-            <span className="text-[7px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.14em] sm:tracking-[0.2em] text-white/95">
+            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate">
               {template.logoName || "ALPHA CAPITAL"}
             </span>
           </div>
@@ -222,11 +234,13 @@ export function CertificateViewer({
               {/* Signature Column */}
               <div className="flex flex-col items-center justify-end">
                 <div className="min-h-[14px] sm:min-h-[22px] md:min-h-[28px] flex items-center justify-center">
-                  {template.signatureUrl ? (
+                  {template.signatureUrl && !sigLoadError ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={template.signatureUrl}
                       alt="Signature"
+                      crossOrigin="anonymous"
+                      onError={() => setSigLoadError(true)}
                       className="h-3.5 sm:h-5 md:h-7 object-contain filter invert brightness-200"
                     />
                   ) : (

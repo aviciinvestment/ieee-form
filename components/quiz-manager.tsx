@@ -486,11 +486,11 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
               {visible.map((quiz) => (
                 <li
                   key={quiz.id}
-                  className="flex flex-col gap-3 rounded-md border border-border bg-background/60 p-3 sm:flex-row sm:items-center"
+                  className="flex flex-col gap-3 rounded-md border border-border bg-background/60 p-3 sm:flex-row sm:items-center min-w-0 w-full"
                 >
-                  <div className="flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{quiz.title}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <span className="font-medium break-words">{quiz.title}</span>
                       {quiz.published ? (
                         <Badge className="bg-green-600 text-white hover:bg-green-600">Published</Badge>
                       ) : (
@@ -510,25 +510,25 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                       <QuizWindowBadge window={quiz} alwaysShow />
                     </div>
                     {quiz.description ? (
-                      <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{quiz.description}</p>
+                      <p className="mt-1 line-clamp-2 text-xs sm:text-sm text-muted-foreground break-words">{quiz.description}</p>
                     ) : null}
                     <p className="mt-1 text-xs text-muted-foreground">
                       {quiz.questionCount} question{quiz.questionCount === 1 ? "" : "s"} · {quiz.totalPoints} points ·
                       updated {formatDateTime(quiz.updatedAt)}
                     </p>
                   </div>
-                  <div className="flex flex-wrap justify-end gap-2">
-                    <Button size="sm" variant="secondary" onClick={() => togglePublished(quiz)}>
+                  <div className="flex flex-wrap justify-start sm:justify-end gap-1.5 sm:gap-2 w-full sm:w-auto shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0">
+                    <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs h-8" onClick={() => togglePublished(quiz)}>
                       {quiz.published ? "Unpublish" : "Publish"}
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => openAttempts(quiz)} disabled={attemptsLoading}>
-                      <BarChart3 className="h-4 w-4" /> Results
+                    <Button size="sm" variant="outline" className="flex-1 sm:flex-none text-xs h-8" onClick={() => openAttempts(quiz)} disabled={attemptsLoading}>
+                      <BarChart3 className="h-3.5 w-3.5 mr-1" /> Results
                     </Button>
-                    <Button size="sm" variant="secondary" onClick={() => openQuiz(quiz.id)}>
-                      <Pencil className="h-4 w-4" /> Edit
+                    <Button size="sm" variant="secondary" className="flex-1 sm:flex-none text-xs h-8" onClick={() => openQuiz(quiz.id)}>
+                      <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                     </Button>
-                    <Button size="sm" variant="destructive" onClick={() => removeQuiz(quiz)}>
-                      <Trash2 className="h-4 w-4" /> Delete
+                    <Button size="sm" variant="destructive" className="flex-1 sm:flex-none text-xs h-8" onClick={() => removeQuiz(quiz)}>
+                      <Trash2 className="h-3.5 w-3.5 mr-1" /> Delete
                     </Button>
                   </div>
                 </li>
@@ -582,18 +582,18 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                   const effectivePercentage =
                     effectiveMax > 0 ? Math.round((effectiveScore / effectiveMax) * 1000) / 10 : attempt.percentage;
                   return (
-                    <div key={attempt.id} className="rounded-md border border-border bg-background/60 p-3">
+                    <div key={attempt.id} className="rounded-md border border-border bg-background/60 p-3 min-w-0 w-full">
                       <button
                         type="button"
-                        className="flex w-full flex-wrap items-center justify-between gap-3 text-left"
+                        className="flex w-full flex-wrap items-center justify-between gap-2.5 text-left min-w-0"
                         onClick={() => setOpenAttempt(expanded ? null : attempt.id)}
                         aria-expanded={expanded}
                       >
-                        <div>
-                          <p className="font-medium">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium break-words text-sm sm:text-base">
                             {attempt.participantName || attempt.participantEmail}
                           </p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-xs text-muted-foreground break-all">
                             {attempt.participantEmail} · {formatDateTime(attempt.submittedAt)}
                           </p>
                           {published && attempt.publishedAt ? (
@@ -603,7 +603,7 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                             </p>
                           ) : null}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
                           <Badge variant={published ? "default" : "secondary"}>
                             {published ? "Published" : "Awaiting review"}
                           </Badge>
@@ -694,8 +694,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                               Leave the score blank to publish the automatically graded score of {attempt.score}/
                               {attempt.maxScore}.
                             </p>
-                            <div className="flex flex-wrap items-end gap-2">
-                              <div className="w-32 space-y-1">
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-2.5 w-full min-w-0">
+                              <div className="w-full sm:w-32 space-y-1">
                                 <Label className="text-xs" htmlFor={`override-${attempt.id}`}>
                                   Score override
                                 </Label>
@@ -707,9 +707,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                                   onChange={(event) =>
                                     setOverride((current) => ({ ...current, [attempt.id]: event.target.value }))
                                   }
+                                  className="w-full text-xs h-9"
                                 />
                               </div>
-                              <div className="min-w-48 flex-1 space-y-1">
+                              <div className="w-full sm:min-w-48 sm:flex-1 space-y-1">
                                 <Label className="text-xs" htmlFor={`feedback-${attempt.id}`}>
                                   Note to the participant
                                 </Label>
@@ -720,36 +721,41 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
                                   onChange={(event) =>
                                     setFeedback((current) => ({ ...current, [attempt.id]: event.target.value }))
                                   }
+                                  className="w-full text-xs h-9"
                                 />
                               </div>
-                              {published ? (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={publishingId === attempt.id}
-                                  onClick={() => withdrawAttempt(attempt)}
-                                >
-                                  {publishingId === attempt.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Undo2 className="h-4 w-4" />
-                                  )}
-                                  Withdraw
-                                </Button>
-                              ) : (
-                                <Button
-                                  size="sm"
-                                  disabled={publishingId === attempt.id}
-                                  onClick={() => publishAttempt(attempt)}
-                                >
-                                  {publishingId === attempt.id ? (
-                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                  ) : (
-                                    <Send className="h-4 w-4" />
-                                  )}
-                                  Publish result
-                                </Button>
-                              )}
+                              <div className="w-full sm:w-auto pt-1 sm:pt-0">
+                                {published ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="w-full sm:w-auto text-xs h-9"
+                                    disabled={publishingId === attempt.id}
+                                    onClick={() => withdrawAttempt(attempt)}
+                                  >
+                                    {publishingId === attempt.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                    ) : (
+                                      <Undo2 className="h-4 w-4 mr-1" />
+                                    )}
+                                    Withdraw
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    size="sm"
+                                    className="w-full sm:w-auto text-xs h-9"
+                                    disabled={publishingId === attempt.id}
+                                    onClick={() => publishAttempt(attempt)}
+                                  >
+                                    {publishingId === attempt.id ? (
+                                      <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                                    ) : (
+                                      <Send className="h-4 w-4 mr-1" />
+                                    )}
+                                    Publish result
+                                  </Button>
+                                )}
+                              </div>
                             </div>
                             {attempt.adjustedFeedback ? (
                               <p className="flex items-start gap-1 text-xs text-muted-foreground">

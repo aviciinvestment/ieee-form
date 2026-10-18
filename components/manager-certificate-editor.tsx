@@ -118,13 +118,13 @@ export function ManagerCertificateEditor({ email, trackName }: Props) {
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={handleReset}
               disabled={saving || loading || description === defaultDescription}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none"
             >
               <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset to Default
             </Button>
@@ -132,7 +132,7 @@ export function ManagerCertificateEditor({ email, trackName }: Props) {
               size="sm"
               onClick={handleSave}
               disabled={saving || loading || !description.trim()}
-              className="bg-primary text-primary-foreground shadow-sm text-xs"
+              className="bg-primary text-primary-foreground shadow-sm text-xs flex-1 sm:flex-none"
             >
               {saving ? (
                 <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />

@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Award, Check, Eye, Loader2, RefreshCw, RotateCcw, Save } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Award, Check, Eye, Loader2, RefreshCw, RotateCcw, Save, Upload, X } from "lucide-react";
 import { CertificateViewer } from "@/components/certificate-viewer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,79 @@ export function CertificateManager({ email }: Props) {
   const [previewName, setPreviewName] = useState("Tarun Vishwkarma");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const logoFileInputRef = useRef<HTMLInputElement>(null);
+  const sigFileInputRef = useRef<HTMLInputElement>(null);
+
+  function normalizeImageUrl(input: string): string {
+    if (!input) return "";
+    let url = input.trim();
+    if (url.startsWith("data:")) return url;
+
+    // Convert Google Drive view/open links to direct image source
+    const gDriveMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (gDriveMatch && gDriveMatch[1]) {
+      return `https://lh3.googleusercontent.com/d/${gDriveMatch[1]}`;
+    }
+
+    // Convert Dropbox share links to raw file
+    if (url.includes("dropbox.com") && url.includes("dl=0")) {
+      return url.replace("dl=0", "raw=1");
+    }
+
+    // Local public assets
+    if (url === "logo.svg" || url === "download.png" || url === "download.jpg" || url === "certificate-base.png") {
+      return `/${url}`;
+    }
+
+    return url;
+  }
+
+  function handleImageUpload(file: File, callback: (dataUrl: string) => void) {
+    if (!file.type.startsWith("image/")) {
+      showAlert("Invalid File", "Please select an image file (PNG, JPG, SVG, WEBP).", "error");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const raw = e.target?.result as string;
+      if (!raw) return;
+
+      if (file.type === "image/svg+xml" || file.size < 60000) {
+        callback(raw);
+        return;
+      }
+
+      // Optimize raster images so they store cleanly in database
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 500;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          callback(canvas.toDataURL("image/png"));
+        } else {
+          callback(raw);
+        }
+      };
+      img.onerror = () => callback(raw);
+      img.src = raw;
+    };
+    reader.readAsDataURL(file);
+  }
 
   async function loadTemplate() {
     setLoading(true);
@@ -87,23 +160,23 @@ export function CertificateManager({ email }: Props) {
     <>
       {dialogs}
       <Card className="glass-card shadow-lg border-primary/20">
-        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Award className="h-5 w-5 text-primary" /> Certificate Template Editor
+        <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 min-w-0">
+          <div className="min-w-0">
+            <CardTitle className="text-base sm:text-lg flex items-center gap-2">
+              <Award className="h-5 w-5 text-primary shrink-0" /> Certificate Template Editor
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-xs sm:text-sm mt-1">
               Customize the certificate text, logo, badge, description, and signatory credentials. Only admins can edit these details.
             </CardDescription>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={handleReset}
               disabled={saving || loading}
-              className="text-xs"
+              className="text-xs flex-1 sm:flex-none"
             >
               <RotateCcw className="mr-1.5 h-3.5 w-3.5" /> Reset
             </Button>
@@ -111,7 +184,7 @@ export function CertificateManager({ email }: Props) {
               size="sm"
               onClick={saveTemplate}
               disabled={saving || loading}
-              className="bg-primary text-primary-foreground shadow-sm"
+              className="bg-primary text-primary-foreground shadow-sm text-xs flex-1 sm:flex-none"
             >
               {saving ? (
                 <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
@@ -159,16 +232,110 @@ export function CertificateManager({ email }: Props) {
                     </div>
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="logoUrl" className="text-xs">
-                      Custom Logo Image URL <span className="text-muted-foreground font-normal">(optional)</span>
-                    </Label>
-                    <Input
-                      id="logoUrl"
-                      value={template.logoUrl || ""}
-                      onChange={(e) => setTemplate({ ...template, logoUrl: e.target.value })}
-                      placeholder="https://... (leave empty for default icon)"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="logoUrl" className="text-xs font-medium">
+                        Custom Logo Image <span className="text-muted-foreground font-normal">(URL or Upload)</span>
+                      </Label>
+                      {template.logoUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setTemplate({ ...template, logoUrl: "" })}
+                          className="text-[11px] text-destructive hover:underline"
+                        >
+                          Reset to default
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Input
+                        id="logoUrl"
+                        value={template.logoUrl || ""}
+                        onChange={(e) => setTemplate({ ...template, logoUrl: e.target.value })}
+                        onBlur={(e) => setTemplate({ ...template, logoUrl: normalizeImageUrl(e.target.value) })}
+                        placeholder="Paste image URL or click Upload…"
+                        className="text-xs"
+                      />
+                      <input
+                        ref={logoFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageUpload(file, (url) => setTemplate((prev) => ({ ...prev, logoUrl: url })));
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 text-xs px-2.5 h-9"
+                        onClick={() => logoFileInputRef.current?.click()}
+                        title="Upload logo from device"
+                      >
+                        <Upload className="h-3.5 w-3.5 mr-1" /> Upload
+                      </Button>
+                    </div>
+
+                    {/* Presets */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                      <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Presets:</span>
+                      <button
+                        type="button"
+                        onClick={() => setTemplate({ ...template, logoUrl: "/logo.svg", logoName: "IEEE STUDENT BRANCH" })}
+                        className="text-[11px] px-2 py-0.5 rounded-full bg-secondary hover:bg-primary/20 hover:text-primary transition-colors text-muted-foreground"
+                      >
+                        IEEE Logo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTemplate({ ...template, logoUrl: "/download.png", logoName: "NAU BRANCH" })}
+                        className="text-[11px] px-2 py-0.5 rounded-full bg-secondary hover:bg-primary/20 hover:text-primary transition-colors text-muted-foreground"
+                      >
+                        NAU Logo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setTemplate({ ...template, logoUrl: "" })}
+                        className="text-[11px] px-2 py-0.5 rounded-full bg-secondary hover:bg-primary/20 hover:text-primary transition-colors text-muted-foreground"
+                      >
+                        Default Icon
+                      </button>
+                    </div>
+
+                    {/* Active Logo status/preview */}
+                    {template.logoUrl ? (
+                      <div className="flex items-center gap-2.5 p-2 rounded-md border border-border/80 bg-black/40 text-xs">
+                        <div className="w-8 h-8 rounded bg-black/60 border border-white/20 flex items-center justify-center overflow-hidden shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={template.logoUrl}
+                            alt="Logo Preview"
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.currentTarget as HTMLElement).style.display = "none";
+                            }}
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium text-white truncate">Active Custom Logo</p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {template.logoUrl.startsWith("data:") ? "Uploaded local image" : template.logoUrl}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                          onClick={() => setTemplate({ ...template, logoUrl: "" })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 
@@ -253,42 +420,106 @@ export function CertificateManager({ email }: Props) {
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <Label htmlFor="signatureUrl" className="text-xs">
-                      Custom Signature Image URL <span className="text-muted-foreground font-normal">(optional)</span>
-                    </Label>
-                    <Input
-                      id="signatureUrl"
-                      value={template.signatureUrl || ""}
-                      onChange={(e) => setTemplate({ ...template, signatureUrl: e.target.value })}
-                      placeholder="https://... (leave empty for cursive script)"
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="signatureUrl" className="text-xs font-medium">
+                        Custom Signature Image <span className="text-muted-foreground font-normal">(URL or Upload)</span>
+                      </Label>
+                      {template.signatureUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setTemplate({ ...template, signatureUrl: "" })}
+                          className="text-[11px] text-destructive hover:underline"
+                        >
+                          Reset to script
+                        </button>
+                      ) : null}
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Input
+                        id="signatureUrl"
+                        value={template.signatureUrl || ""}
+                        onChange={(e) => setTemplate({ ...template, signatureUrl: e.target.value })}
+                        onBlur={(e) => setTemplate({ ...template, signatureUrl: normalizeImageUrl(e.target.value) })}
+                        placeholder="https://... or click Upload"
+                        className="text-xs"
+                      />
+                      <input
+                        ref={sigFileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleImageUpload(file, (url) => setTemplate((prev) => ({ ...prev, signatureUrl: url })));
+                        }}
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="shrink-0 text-xs px-2.5 h-9"
+                        onClick={() => sigFileInputRef.current?.click()}
+                        title="Upload signature image"
+                      >
+                        <Upload className="h-3.5 w-3.5 mr-1" /> Upload
+                      </Button>
+                    </div>
+
+                    {template.signatureUrl ? (
+                      <div className="flex items-center gap-2.5 p-2 rounded-md border border-border/80 bg-black/40 text-xs">
+                        <div className="w-8 h-8 rounded bg-black/60 border border-white/20 flex items-center justify-center overflow-hidden shrink-0">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={template.signatureUrl}
+                            alt="Signature Preview"
+                            className="w-full h-full object-contain filter invert brightness-200"
+                          />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[11px] font-medium text-white truncate">Active Custom Signature</p>
+                          <p className="text-[10px] text-slate-400 truncate">
+                            {template.signatureUrl.startsWith("data:") ? "Uploaded local image" : template.signatureUrl}
+                          </p>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive shrink-0"
+                          onClick={() => setTemplate({ ...template, signatureUrl: "" })}
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               </div>
 
               {/* Live Preview Column */}
-              <div className="lg:col-span-7 flex flex-col space-y-3">
-                <div className="flex items-center justify-between">
+              <div className="lg:col-span-7 flex flex-col space-y-3 min-w-0 w-full">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 min-w-0 w-full">
                   <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                    <Eye className="w-4 h-4 text-primary" /> Live Certificate Preview
+                    <Eye className="w-4 h-4 text-primary shrink-0" /> Live Certificate Preview
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Label htmlFor="testName" className="text-xs text-muted-foreground whitespace-nowrap">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <Label htmlFor="testName" className="text-xs text-muted-foreground whitespace-nowrap shrink-0">
                       Test Candidate:
                     </Label>
                     <Input
                       id="testName"
                       value={previewName}
                       onChange={(e) => setPreviewName(e.target.value)}
-                      className="h-7 text-xs w-44"
+                      className="h-8 sm:h-7 text-xs flex-1 sm:w-44"
                       placeholder="Type name to preview…"
                     />
                   </div>
                 </div>
 
-                <div className="p-2 sm:p-3 rounded-xl border border-border/50 bg-black/60 shadow-inner">
+                <div className="p-2 sm:p-3 rounded-xl border border-border/50 bg-black/60 shadow-inner w-full overflow-hidden">
                   <CertificateViewer
                     participant={{
                       firstName: previewFirst || "Tarun",
