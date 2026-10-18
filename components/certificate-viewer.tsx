@@ -160,7 +160,7 @@ export function CertificateViewer({
           </div>
 
           {/* Center-Right Certificate Content Column */}
-          <div className="absolute top-[12.5%] sm:top-[14%] md:top-[15%] bottom-[4%] sm:bottom-[5%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
+          <div className="absolute top-[13.5%] sm:top-[14%] md:top-[15%] bottom-[10%] sm:bottom-[6%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
             {/* Top Group: Badge, Title, Subtitle, Candidate Capsule & Track Pill */}
             <div className="flex flex-col items-center w-full space-y-0.5 sm:space-y-1 md:space-y-1.5">
               {/* Blue Phase Pill Badge */}
@@ -171,26 +171,26 @@ export function CertificateViewer({
               </div>
 
               {/* Title */}
-              <h2 className="text-[9.5px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.18] sm:leading-[1.24] md:leading-[1.28] whitespace-pre-line drop-shadow-sm my-0 sm:my-0.5">
+              <h2 className="text-[10px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.2] sm:leading-[1.24] md:leading-[1.28] whitespace-pre-line drop-shadow-sm my-0 sm:my-0.5">
                 {template.title || "Certificate\nOf Achievement"}
               </h2>
 
               {/* Subtitle */}
-              <p className="text-[6px] sm:text-[9px] md:text-[11.5px] font-normal text-slate-300 tracking-wide leading-tight">
+              <p className="text-[6.5px] sm:text-[9px] md:text-[11.5px] font-normal text-slate-300 tracking-wide leading-tight">
                 {template.subtitle || "Proudly presented to"}
               </p>
 
               {/* Candidate Name Capsule */}
-              <div className="w-full max-w-[96%] sm:max-w-md py-0.5 sm:py-1.5 md:py-2 px-2.5 sm:px-4 md:px-5 rounded-full bg-black/45 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] backdrop-blur-sm transition-all flex items-center justify-center">
-                <span className="text-[8.5px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
+              <div className="w-full max-w-[96%] sm:max-w-md py-1 sm:py-1.5 md:py-2 px-3 sm:px-4 md:px-5 rounded-full bg-black/45 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] backdrop-blur-sm transition-all flex items-center justify-center">
+                <span className="text-[9px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
                   {candidateName}
                 </span>
               </div>
 
               {/* Chosen Learning Track Display */}
               {participant.techSkill ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm">
-                  <span className="text-[5.5px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm">
+                  <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
                     {participant.techSkill} Track
                   </span>
                 </div>
@@ -198,14 +198,14 @@ export function CertificateViewer({
             </div>
 
             {/* Description Body: Full Text (Reduced spacing, no ellipses) */}
-            <div className="w-full max-w-[96%] px-1 sm:px-2 my-0.5 sm:my-1">
-              <p className="text-[6.2px] sm:text-[8.5px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.34] sm:leading-[1.45] md:leading-[1.5] font-normal">
+            <div className="w-full max-w-[96%] px-1 sm:px-2">
+              <p className="text-[6.8px] sm:text-[8.5px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.36] sm:leading-[1.45] md:leading-[1.5] font-normal">
                 {template.bodyText}
               </p>
             </div>
 
             {/* Footer: Date and Signature Columns */}
-            <div className="w-full grid grid-cols-2 gap-2 sm:gap-6 md:gap-8 pt-0.5 sm:pt-1 pb-0.5 sm:pb-1">
+            <div className="w-full grid grid-cols-2 gap-2 sm:gap-6 md:gap-8 pt-0 sm:pt-1 pb-0 sm:pb-1">
               {/* Date Column */}
               <div className="flex flex-col items-center justify-end">
                 <div className="min-h-[14px] sm:min-h-[22px] md:min-h-[28px] flex items-center justify-center">
