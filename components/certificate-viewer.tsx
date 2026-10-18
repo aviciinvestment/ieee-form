@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { Download, FileText, Image as ImageIcon, Loader2 } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { FileText, Image as ImageIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { CertificateTemplate } from "@/lib/types";
 
@@ -18,16 +18,46 @@ type Props = {
   showDownloadButtons?: boolean;
 };
 
+const BASE_WIDTH = 735;
+const BASE_HEIGHT = 554;
+
 export function CertificateViewer({
   participant,
   template,
   showDownloadButtons = true,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const certRef = useRef<HTMLDivElement>(null);
+
+  const [scale, setScale] = useState(1);
   const [downloadingPng, setDownloadingPng] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [logoLoadError, setLogoLoadError] = useState(false);
   const [sigLoadError, setSigLoadError] = useState(false);
+
+  // Keep preview responsive and proportionally scaled
+  const updateScale = useCallback(() => {
+    if (!containerRef.current) return;
+    const width = containerRef.current.clientWidth;
+    if (width > 0) {
+      setScale(width / BASE_WIDTH);
+    }
+  }, []);
+
+  useEffect(() => {
+    updateScale();
+    const el = containerRef.current;
+    if (!el) return;
+
+    const ro = new ResizeObserver(updateScale);
+    ro.observe(el);
+    window.addEventListener("resize", updateScale);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", updateScale);
+    };
+  }, [updateScale]);
 
   useEffect(() => {
     setLogoLoadError(false);
@@ -40,18 +70,71 @@ export function CertificateViewer({
   const candidateName = `${participant.firstName} ${participant.lastName}`.trim() || "Candidate Name";
   const fileBaseName = `${participant.firstName}_${participant.lastName}_Certificate`.replace(/\s+/g, "_");
 
+  // Dynamic font sizing for candidate name to avoid any truncation or text wrapping issues
+  const nameLength = candidateName.length;
+  const nameFontSize = nameLength > 28 ? 13 : nameLength > 22 ? 15 : 17;
+  const nameLineHeight = nameLength > 28 ? 19 : nameLength > 22 ? 21 : 24;
+
+  async function generateCanvas(): Promise<HTMLCanvasElement | null> {
+    if (!certRef.current) return null;
+    await document.fonts?.ready;
+    const html2canvas = (await import("html2canvas")).default;
+
+    return await html2canvas(certRef.current, {
+      scale: 2.5, // 2.5x gives 1837 x 1385 print-quality resolution
+      useCORS: true,
+      allowTaint: false,
+      backgroundColor: "#070a0f",
+      scrollX: 0,
+      scrollY: 0,
+      x: 0,
+      y: 0,
+      width: BASE_WIDTH,
+      height: BASE_HEIGHT,
+      windowWidth: BASE_WIDTH,
+      windowHeight: BASE_HEIGHT,
+      onclone: (clonedDoc, clonedEl) => {
+        // Reset any parent constraints in the cloned iframe so nothing clips or shifts
+        clonedDoc.body.style.width = `${BASE_WIDTH}px`;
+        clonedDoc.body.style.height = `${BASE_HEIGHT}px`;
+        clonedDoc.body.style.margin = "0";
+        clonedDoc.body.style.padding = "0";
+        clonedDoc.body.style.overflow = "visible";
+
+        let parent = clonedEl.parentElement;
+        while (parent && parent !== clonedDoc.body) {
+          parent.style.width = `${BASE_WIDTH}px`;
+          parent.style.maxWidth = "none";
+          parent.style.height = `${BASE_HEIGHT}px`;
+          parent.style.maxHeight = "none";
+          parent.style.padding = "0";
+          parent.style.margin = "0";
+          parent.style.overflow = "visible";
+          parent.style.transform = "none";
+          parent = parent.parentElement;
+        }
+
+        // Render the cloned certificate cleanly at exact 1:1 scale
+        clonedEl.style.transform = "none";
+        clonedEl.style.position = "absolute";
+        clonedEl.style.top = "0";
+        clonedEl.style.left = "0";
+        clonedEl.style.width = `${BASE_WIDTH}px`;
+        clonedEl.style.height = `${BASE_HEIGHT}px`;
+        clonedEl.style.margin = "0";
+        clonedEl.style.overflow = "hidden";
+      },
+    });
+  }
+
   async function downloadPNG() {
     if (!certRef.current || downloadingPng) return;
     setDownloadingPng(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(certRef.current, {
-        scale: 3, // 3x resolution for high-definition print quality
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#070a0f",
-        windowWidth: 1280,
-      });
+      const canvas = await generateCanvas();
+      if (!canvas) {
+        throw new Error("Could not create canvas.");
+      }
       const dataUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
       link.download = `${fileBaseName}.png`;
@@ -69,26 +152,20 @@ export function CertificateViewer({
     if (!certRef.current || downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await generateCanvas();
+      if (!canvas) {
+        throw new Error("Could not create canvas.");
+      }
       const { jsPDF } = await import("jspdf");
+      const imgData = canvas.toDataURL("image/png");
 
-      const canvas = await html2canvas(certRef.current, {
-        scale: 3,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#070a0f",
-        windowWidth: 1280,
-      });
-
-      const imgData = canvas.toDataURL("image/jpeg", 0.98);
-      // Landscape certificate (297mm x 210mm A4 standard or canvas aspect ratio)
       const pdf = new jsPDF({
         orientation: "landscape",
         unit: "px",
-        format: [canvas.width / 3, canvas.height / 3],
+        format: [BASE_WIDTH, BASE_HEIGHT],
       });
 
-      pdf.addImage(imgData, "JPEG", 0, 0, canvas.width / 3, canvas.height / 3);
+      pdf.addImage(imgData, "PNG", 0, 0, BASE_WIDTH, BASE_HEIGHT);
       pdf.save(`${fileBaseName}.pdf`);
     } catch (err) {
       console.error("PDF download error:", err);
@@ -133,19 +210,40 @@ export function CertificateViewer({
       ) : null}
 
       {/* Responsive certificate container */}
-      <div className="w-full overflow-hidden rounded-xl shadow-2xl border border-border/40 bg-[#070a0f] mb-4">
+      <div
+        ref={containerRef}
+        className="relative w-full aspect-[735/554] overflow-hidden rounded-xl shadow-2xl border border-border/40 bg-[#070a0f] mb-4"
+      >
         <div
           ref={certRef}
-          className="relative w-full aspect-[735/554] select-none text-white overflow-hidden"
+          id="official-certificate-canvas"
           style={{
+            width: BASE_WIDTH,
+            height: BASE_HEIGHT,
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
             backgroundImage: "url('/certificate-base.png')",
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
           }}
+          className="absolute top-0 left-0 select-none text-white overflow-hidden pointer-events-auto"
         >
-          {/* Top Logo Section (Center-aligned with certificate content) */}
-          <div className="absolute top-[2%] sm:top-[3%] md:top-[4%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex items-center justify-center gap-1.5 sm:gap-2.5 z-10 px-2 overflow-hidden text-center">
+          {/* Top Logo Section (Aligned with center-right content area) */}
+          <div
+            style={{
+              position: "absolute",
+              top: "18px",
+              right: "18px",
+              width: "456px",
+              height: "28px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+              zIndex: 10,
+            }}
+          >
             {template.logoUrl && !logoLoadError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -153,114 +251,342 @@ export function CertificateViewer({
                 alt="Logo"
                 crossOrigin="anonymous"
                 onError={() => setLogoLoadError(true)}
-                className="h-3.5 sm:h-5 md:h-7 max-w-[50px] sm:max-w-[90px] md:max-w-[120px] object-contain shrink-0"
+                style={{
+                  maxHeight: "22px",
+                  maxWidth: "120px",
+                  objectFit: "contain",
+                  flexShrink: 0,
+                }}
               />
             ) : (
               /* Default geometric logo matching the original Alpha Capital symbol */
               <svg
                 viewBox="0 0 32 32"
-                className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 md:w-6 md:h-6 text-white fill-current shrink-0"
+                style={{
+                  width: "20px",
+                  height: "20px",
+                  color: "#ffffff",
+                  fill: "currentColor",
+                  flexShrink: 0,
+                }}
               >
                 <polygon points="16,2 26,22 22,22 16,10 10,22 6,22" />
                 <polygon points="16,14 20,22 12,22" opacity="0.6" />
                 <polygon points="16,24 23,30 9,30" opacity="0.85" />
               </svg>
             )}
-            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate text-center">
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.18em",
+                textTransform: "uppercase",
+                color: "rgba(255, 255, 255, 0.95)",
+                lineHeight: "18px",
+                padding: "0 2px",
+                whiteSpace: "nowrap",
+              }}
+            >
               {template.logoName || "ALPHA CAPITAL"}
             </span>
           </div>
 
-          {/* Center-Right Certificate Content Column */}
-          <div className="absolute top-[13.5%] sm:top-[14%] md:top-[15%] bottom-[10%] sm:bottom-[6%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
-            {/* Top Group: Badge, Title, Subtitle, Candidate Capsule & Track Pill */}
-            <div className="flex flex-col items-center w-full space-y-0.5 sm:space-y-1 md:space-y-1.5">
-              {/* Blue Phase Pill Badge */}
-              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-1.5 py-0.5 sm:px-3 sm:py-1 shadow-sm">
-                <span className="text-[6.5px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white">
-                  {template.badgeText || "PHASE 1"}
-                </span>
-              </div>
-
-              {/* Title */}
-              <h2 className="text-[10px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.2] sm:leading-[1.24] md:leading-[1.28] whitespace-pre-line drop-shadow-sm my-0 sm:my-0.5">
-                {template.title || "Certificate\nOf Achievement"}
-              </h2>
-
-              {/* Subtitle */}
-              <p className="text-[6.5px] sm:text-[9px] md:text-[11.5px] font-normal text-slate-300 tracking-wide leading-tight">
-                {template.subtitle || "Proudly presented to"}
-              </p>
-
-              {/* Candidate Name Capsule */}
-              <div className="w-full max-w-[96%] sm:max-w-md py-1 sm:py-1.5 md:py-2 px-3 sm:px-4 md:px-5 rounded-full bg-black/45 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] backdrop-blur-sm transition-all flex items-center justify-center">
-                <span className="text-[9px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
-                  {candidateName}
-                </span>
-              </div>
-
-              {/* Chosen Learning Track Display */}
-              {participant.techSkill ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0.5 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm">
-                  <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
-                    {participant.techSkill} Track
-                  </span>
-                </div>
-              ) : null}
+          {/* Main Content Area (Column on the right side) */}
+          <div
+            style={{
+              position: "absolute",
+              top: "60px",
+              right: "18px",
+              width: "456px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              zIndex: 10,
+            }}
+          >
+            {/* Phase Badge */}
+            <div
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "3px",
+                backgroundColor: "#0052ff",
+                padding: "2px 10px",
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: "9px",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  color: "#ffffff",
+                  lineHeight: "14px",
+                }}
+              >
+                {template.badgeText || "PHASE 1"}
+              </span>
             </div>
 
-            {/* Description Body: Full Text (Reduced spacing, no ellipses) */}
-            <div className="w-full max-w-[96%] px-1 sm:px-2">
-              <p className="text-[6.8px] sm:text-[8.5px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.36] sm:leading-[1.45] md:leading-[1.5] font-normal">
+            {/* Certificate Title */}
+            <h2
+              style={{
+                fontSize: "23px",
+                lineHeight: "29px",
+                fontWeight: 900,
+                letterSpacing: "-0.01em",
+                color: "#ffffff",
+                whiteSpace: "pre-line",
+                textAlign: "center",
+                margin: "8px 0 4px 0",
+                padding: "2px 0",
+                textShadow: "0 2px 8px rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              {template.title || "Certificate\nOf Achievement"}
+            </h2>
+
+            {/* Subtitle */}
+            <p
+              style={{
+                fontSize: "10.5px",
+                lineHeight: "15px",
+                fontWeight: 400,
+                color: "#cbd5e1",
+                letterSpacing: "0.04em",
+                textAlign: "center",
+                margin: "0 0 7px 0",
+              }}
+            >
+              {template.subtitle || "Proudly presented to"}
+            </p>
+
+            {/* Candidate Name Capsule */}
+            <div
+              style={{
+                width: "380px",
+                maxWidth: "96%",
+                padding: "6px 20px",
+                borderRadius: "9999px",
+                backgroundColor: "rgba(0, 0, 0, 0.65)",
+                border: "1px solid rgba(255, 255, 255, 0.25)",
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.4)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                margin: "0 0 6px 0",
+              }}
+            >
+              <span
+                style={{
+                  fontSize: `${nameFontSize}px`,
+                  lineHeight: `${nameLineHeight}px`,
+                  fontWeight: 700,
+                  letterSpacing: "0.02em",
+                  color: "#ffffff",
+                  textAlign: "center",
+                  padding: "1px 0",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  maxWidth: "100%",
+                }}
+              >
+                {candidateName}
+              </span>
+            </div>
+
+            {/* Chosen Learning Track Display */}
+            {participant.techSkill ? (
+              <div
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "4px",
+                  padding: "2px 12px",
+                  borderRadius: "9999px",
+                  backgroundColor: "rgba(255, 255, 255, 0.08)",
+                  border: "1px solid rgba(255, 255, 255, 0.2)",
+                  margin: "0 0 7px 0",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: "8.5px",
+                    lineHeight: "13px",
+                    fontWeight: 600,
+                    letterSpacing: "0.14em",
+                    textTransform: "uppercase",
+                    color: "#67e8f9",
+                  }}
+                >
+                  {participant.techSkill} Track
+                </span>
+              </div>
+            ) : null}
+
+            {/* Description Body Text */}
+            <div
+              style={{
+                width: "410px",
+                maxWidth: "96%",
+                padding: "2px 4px",
+                margin: "2px 0 0 0",
+              }}
+            >
+              <p
+                style={{
+                  fontSize: "9.5px",
+                  lineHeight: "15.5px",
+                  fontWeight: 400,
+                  color: "#e2e8f0",
+                  textAlign: "center",
+                  margin: 0,
+                }}
+              >
                 {template.bodyText}
               </p>
             </div>
+          </div>
 
-            {/* Footer: Date and Signature Columns */}
-            <div className="w-full grid grid-cols-2 gap-2 sm:gap-6 md:gap-8 pt-0 sm:pt-1 pb-0 sm:pb-1">
-              {/* Date Column */}
-              <div className="flex flex-col items-center justify-end">
-                <div className="min-h-[14px] sm:min-h-[22px] md:min-h-[28px] flex items-center justify-center">
-                  <span className="font-serif italic text-[7px] sm:text-[10px] md:text-sm text-slate-200 tracking-wide">
-                    {template.dateText || "26 Aug 2025"}
+          {/* Footer: Date and Signature Columns (Anchored at the bottom) */}
+          <div
+            style={{
+              position: "absolute",
+              bottom: "26px",
+              right: "18px",
+              width: "456px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: "32px",
+              padding: "0 20px",
+              boxSizing: "border-box",
+              zIndex: 10,
+            }}
+          >
+            {/* Date Column */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
+            >
+              <div
+                style={{
+                  height: "26px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <span
+                  style={{
+                    fontFamily: "serif",
+                    fontStyle: "italic",
+                    fontSize: "11.5px",
+                    lineHeight: "16px",
+                    color: "#e2e8f0",
+                    letterSpacing: "0.02em",
+                  }}
+                >
+                  {template.dateText || "26 Aug 2025"}
+                </span>
+              </div>
+              <div
+                style={{
+                  width: "120px",
+                  height: "1px",
+                  backgroundColor: "rgba(255, 255, 255, 0.4)",
+                  margin: "4px 0 3px 0",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "8px",
+                  lineHeight: "12px",
+                  fontWeight: 600,
+                  textTransform: "uppercase",
+                  letterSpacing: "0.1em",
+                  color: "#94a3b8",
+                }}
+              >
+                Date
+              </span>
+            </div>
+
+            {/* Signature Column */}
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                justifyContent: "flex-end",
+              }}
+            >
+              <div
+                style={{
+                  height: "26px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                {template.signatureUrl && !sigLoadError ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={template.signatureUrl}
+                    alt="Signature"
+                    crossOrigin="anonymous"
+                    onError={() => setSigLoadError(true)}
+                    style={{
+                      height: "26px",
+                      objectFit: "contain",
+                      filter: "invert(1) brightness(2)",
+                    }}
+                  />
+                ) : (
+                  <span
+                    style={{
+                      fontSize: "16px",
+                      lineHeight: "22px",
+                      fontFamily:
+                        "'Brush Script MT', 'Segoe Script', 'Caveat', 'Dancing Script', cursive",
+                      fontStyle: "italic",
+                      letterSpacing: "0.04em",
+                      color: "#ffffff",
+                      padding: "0 6px",
+                      display: "inline-block",
+                      userSelect: "none",
+                    }}
+                  >
+                    {template.signatoryName || "George Kohler"}
                   </span>
-                </div>
-                <div className="w-14 sm:w-24 md:w-36 h-[0.5px] sm:h-[1px] bg-white/40 my-0.5 sm:my-1" />
-                <span className="text-[5.5px] sm:text-[8px] md:text-[10px] font-medium uppercase tracking-wider text-slate-400">
-                  Date
-                </span>
+                )}
               </div>
-
-              {/* Signature Column */}
-              <div className="flex flex-col items-center justify-end">
-                <div className="min-h-[14px] sm:min-h-[22px] md:min-h-[28px] flex items-center justify-center">
-                  {template.signatureUrl && !sigLoadError ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={template.signatureUrl}
-                      alt="Signature"
-                      crossOrigin="anonymous"
-                      onError={() => setSigLoadError(true)}
-                      className="h-3.5 sm:h-5 md:h-7 object-contain filter invert brightness-200"
-                    />
-                  ) : (
-                    /* Default elegant cursive handwritten signature */
-                    <span
-                      className="text-[8px] sm:text-xs md:text-base lg:text-lg font-normal text-white italic tracking-wider select-none leading-none"
-                      style={{
-                        fontFamily: "'Brush Script MT', 'Dancing Script', 'Caveat', cursive",
-                        transform: "rotate(-3deg)",
-                      }}
-                    >
-                      {template.signatoryName || "George Kohler"}
-                    </span>
-                  )}
-                </div>
-                <div className="w-14 sm:w-24 md:w-36 h-[0.5px] sm:h-[1px] bg-white/40 my-0.5 sm:my-1" />
-                <span className="text-[5.5px] sm:text-[8px] md:text-[10px] font-medium tracking-wider text-slate-400">
-                  {template.signatoryTitle || "Managing Director"}
-                </span>
-              </div>
+              <div
+                style={{
+                  width: "120px",
+                  height: "1px",
+                  backgroundColor: "rgba(255, 255, 255, 0.4)",
+                  margin: "4px 0 3px 0",
+                }}
+              />
+              <span
+                style={{
+                  fontSize: "8px",
+                  lineHeight: "12px",
+                  fontWeight: 500,
+                  letterSpacing: "0.04em",
+                  color: "#94a3b8",
+                }}
+              >
+                {template.signatoryTitle || "Managing Director"}
+              </span>
             </div>
           </div>
         </div>
