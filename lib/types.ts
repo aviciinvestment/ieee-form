@@ -26,6 +26,8 @@ export type CertificateTemplate = {
   signatureUrl?: string;
 };
 
+export const MAX_CERTIFICATE_BODY_LENGTH = 280;
+
 export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplate = {
   logoUrl: "",
   logoName: "ALPHA CAPITAL",
@@ -33,7 +35,7 @@ export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplate = {
   title: "Certificate\nOf Achievement",
   subtitle: "Proudly presented to",
   bodyText:
-    "The trader has successfully completed the Alpha Capital Group Evaluation. The trader has clearly demonstrated capital management and the ability to effectively manage risk with the set parameters. The profitability of the trader's strategy has been established during the completion of the evaluation period. This trader is officially an Alpha Capital Group Proprietary Trader.",
+    "The participant has successfully completed the evaluation period, demonstrating disciplined mastery, technical competence, and dedication to excellence throughout the challenge.",
   dateText: "26 Aug 2025",
   signatoryName: "George Kohler",
   signatoryTitle: "Managing Director",

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useModal } from "@/components/use-modal";
-import { DEFAULT_CERTIFICATE_TEMPLATE, type CertificateTemplate } from "@/lib/types";
+import { DEFAULT_CERTIFICATE_TEMPLATE, MAX_CERTIFICATE_BODY_LENGTH, type CertificateTemplate } from "@/lib/types";
 
 const emailHeader = (email: string) => ({ "X-User-Email": email });
 
@@ -198,14 +198,20 @@ export function CertificateManager({ email }: Props) {
                   </div>
 
                   <div className="space-y-1">
-                    <Label htmlFor="bodyText" className="text-xs">Description Body Text</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="bodyText" className="text-xs">Description Body Text</Label>
+                      <span className={`text-[11px] font-mono ${template.bodyText.length >= MAX_CERTIFICATE_BODY_LENGTH ? "text-amber-500 font-semibold" : "text-muted-foreground"}`}>
+                        {template.bodyText.length} / {MAX_CERTIFICATE_BODY_LENGTH}
+                      </span>
+                    </div>
                     <textarea
                       id="bodyText"
                       rows={4}
+                      maxLength={MAX_CERTIFICATE_BODY_LENGTH}
                       className="w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       value={template.bodyText}
                       onChange={(e) => setTemplate({ ...template, bodyText: e.target.value })}
-                      placeholder="Enter the certificate description paragraph…"
+                      placeholder={`Enter the certificate description paragraph (max ${MAX_CERTIFICATE_BODY_LENGTH} characters)…`}
                     />
                   </div>
                 </div>

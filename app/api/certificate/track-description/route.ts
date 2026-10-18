@@ -113,6 +113,13 @@ export async function PUT(req: Request) {
 
     const description = typeof body.description === "string" ? body.description.trim() : "";
 
+    if (description.length > 280) {
+      return NextResponse.json(
+        { error: "Certificate description cannot exceed 280 characters to ensure it fits neatly on all devices." },
+        { status: 400 }
+      );
+    }
+
     // Find the learning track
     const track = await prisma.learningTrack.findFirst({
       where: { name: { equals: targetTrackName, mode: "insensitive" } },

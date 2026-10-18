@@ -160,26 +160,29 @@ export function CertificateViewer({
           </div>
 
           {/* Center-Right Certificate Content Column */}
-          <div className="absolute top-[7%] sm:top-[9%] md:top-[11%] bottom-[3.5%] sm:bottom-[4.5%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
-            {/* Top Group: Badge, Title, Subtitle */}
-            <div className="flex flex-col items-center space-y-0.5 sm:space-y-1.5 md:space-y-2 w-full">
+          <div className="absolute top-[6%] sm:top-[8.5%] md:top-[10.5%] bottom-[3%] sm:bottom-[4.5%] md:bottom-[6%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex flex-col items-center justify-between text-center px-1 sm:px-3 md:px-4 z-10">
+            {/* 1. Header Group: Badge, Title, Subtitle */}
+            <div className="flex flex-col items-center w-full">
               {/* Blue Phase Pill Badge */}
-              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-2 py-0.5 sm:px-3 sm:py-1 shadow-sm">
+              <div className="inline-flex items-center justify-center rounded-[2px] bg-[#0052ff] px-2 py-0.5 sm:px-3 sm:py-1 shadow-sm mb-0.5 sm:mb-1.5">
                 <span className="text-[7px] sm:text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white">
                   {template.badgeText || "PHASE 1"}
                 </span>
               </div>
 
               {/* Title */}
-              <h2 className="text-[10.5px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.18] sm:leading-[1.26] md:leading-[1.3] whitespace-pre-line drop-shadow-sm my-0 sm:my-0.5">
+              <h2 className="text-[10px] sm:text-base md:text-2xl lg:text-[28px] font-black tracking-tight text-white leading-[1.22] sm:leading-[1.26] md:leading-[1.3] whitespace-pre-line drop-shadow-sm my-0.5 sm:my-1">
                 {template.title || "Certificate\nOf Achievement"}
               </h2>
 
               {/* Subtitle */}
-              <p className="text-[6.5px] sm:text-[9.5px] md:text-[12px] font-normal text-slate-300 tracking-wide leading-tight sm:leading-normal">
+              <p className="text-[6.5px] sm:text-[9.5px] md:text-[12px] font-normal text-slate-300 tracking-wide leading-normal">
                 {template.subtitle || "Proudly presented to"}
               </p>
+            </div>
 
+            {/* 2. Recipient Group: Candidate Name Capsule & Track Pill */}
+            <div className="flex flex-col items-center w-full">
               {/* Candidate Name Capsule */}
               <div className="w-full max-w-[96%] sm:max-w-md py-0.5 sm:py-1.5 md:py-2 px-2.5 sm:px-4 md:px-5 rounded-full bg-black/45 border border-white/20 shadow-[0_0_25px_rgba(255,255,255,0.07)] backdrop-blur-sm transition-all flex items-center justify-center">
                 <span className="text-[9px] sm:text-sm md:text-lg lg:text-xl font-bold text-white tracking-wide truncate max-w-full leading-normal">
@@ -189,7 +192,7 @@ export function CertificateViewer({
 
               {/* Chosen Learning Track Display */}
               {participant.techSkill ? (
-                <div className="inline-flex items-center gap-1 px-2 py-0 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm">
+                <div className="inline-flex items-center gap-1 px-2 py-0 sm:px-3 sm:py-0.5 rounded-full bg-white/10 border border-white/20 shadow-sm backdrop-blur-sm mt-0.5 sm:mt-1.5">
                   <span className="text-[6px] sm:text-[8px] md:text-[10px] font-semibold uppercase tracking-[0.14em] text-cyan-300 leading-normal">
                     {participant.techSkill} Track
                   </span>
@@ -197,14 +200,14 @@ export function CertificateViewer({
               ) : null}
             </div>
 
-            {/* Middle Group: Description Body */}
-            <div className="w-full max-w-[96%] my-0.5 sm:my-1">
-              <p className="text-[6.5px] sm:text-[9px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.35] sm:leading-[1.5] md:leading-[1.55] font-normal line-clamp-3 sm:line-clamp-4">
+            {/* 3. Description Group: Full Body Text (No ellipses, cleanly accommodated) */}
+            <div className="w-full max-w-[96%] px-1 sm:px-2">
+              <p className="text-[6.5px] sm:text-[9px] md:text-[10.5px] lg:text-[11.5px] text-slate-200 leading-[1.38] sm:leading-[1.5] md:leading-[1.55] font-normal">
                 {template.bodyText}
               </p>
             </div>
 
-            {/* Bottom Group: Date and Signature Columns */}
+            {/* 4. Footer Group: Date and Signature Columns */}
             <div className="w-full grid grid-cols-2 gap-2 sm:gap-6 md:gap-8 pt-0.5 sm:pt-1 pb-0.5 sm:pb-1">
               {/* Date Column */}
               <div className="flex flex-col items-center justify-end">

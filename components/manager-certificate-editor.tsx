@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useModal } from "@/components/use-modal";
+import { MAX_CERTIFICATE_BODY_LENGTH } from "@/lib/types";
 
 const emailHeader = (email: string) => ({ "X-User-Email": email });
 
@@ -152,19 +153,22 @@ export function ManagerCertificateEditor({ email, trackName }: Props) {
             <div className="space-y-3">
               <div className="relative">
                 <textarea
-                  rows={5}
+                  rows={4}
+                  maxLength={MAX_CERTIFICATE_BODY_LENGTH}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Enter the certificate evaluation body text for this track…"
+                  placeholder="Enter the certificate evaluation body text for this track (max 280 characters)…"
                   className="w-full rounded-md border border-input bg-background/80 px-3.5 py-2.5 text-sm leading-relaxed shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-muted-foreground">
                 <span>
                   All approved participants in the <strong className="font-medium text-foreground">{trackName}</strong> track will receive this exact text on their certificate.
                 </span>
-                <span>{description.length} characters</span>
+                <span className={`font-mono shrink-0 ${description.length >= MAX_CERTIFICATE_BODY_LENGTH ? "text-amber-500 font-semibold" : ""}`}>
+                  {description.length} / {MAX_CERTIFICATE_BODY_LENGTH} characters
+                </span>
               </div>
             </div>
           )}

@@ -66,12 +66,11 @@ export async function GET(req: Request) {
 
       if (!customDesc) {
         try {
-          const rows = await prisma.$queryRawUnsafe<Array<{ certificateDescription?: string }>>(
-            'SELECT "certificateDescription" FROM "LearningTrack" WHERE LOWER(name) = LOWER($1) LIMIT 1',
-            registration.techSkill
-          );
-          if (rows[0]?.certificateDescription?.trim()) {
-            customDesc = rows[0].certificateDescription.trim();
+          const track = await prisma.learningTrack.findFirst({
+            where: { name: { equals: registration.techSkill, mode: "insensitive" } },
+          });
+          if (track?.certificateDescription?.trim()) {
+            customDesc = track.certificateDescription.trim();
           }
         } catch {
           /* fallback */

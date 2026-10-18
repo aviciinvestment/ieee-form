@@ -58,6 +58,13 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
+    if (body.bodyText && body.bodyText.trim().length > 280) {
+      return NextResponse.json(
+        { error: "Certificate description cannot exceed 280 characters to ensure it fits neatly on all devices." },
+        { status: 400 }
+      );
+    }
+
     const currentSetting = await prisma.appSetting.findUnique({
       where: { key: SETTING_KEY },
     });
