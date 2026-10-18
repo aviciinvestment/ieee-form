@@ -19,9 +19,13 @@ function createPrismaClient() {
   // Node 22 exposes a global WebSocket that the driver uses on its own. On older runtimes we
   // hand it the `ws` package instead; that package is kept out of the server bundle in
   // next.config.mjs because its optional native helpers break when they are bundled.
-  if (typeof WebSocket === "undefined") {
+  try {
+    // Node 22's experimental global WebSocket fails with ErrorEvent on Windows TLS proxies,
+    // so we reliably use the `ws` package.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     neonConfig.webSocketConstructor = require("ws");
+  } catch {
+    /* fallback to global WebSocket */
   }
 
   const adapter = new PrismaNeon({ connectionString });

@@ -7,7 +7,37 @@ export type Registration = {
   phone: string;
   techSkill: string;
   email: string;
+  approvedForCertificate: boolean;
+  approvedAt: string | null;
+  approvedBy: string | null;
   createdAt: string;
+};
+
+export type CertificateTemplate = {
+  logoUrl?: string;
+  logoName: string;
+  badgeText: string;
+  title: string;
+  subtitle: string;
+  bodyText: string;
+  dateText: string;
+  signatoryName: string;
+  signatoryTitle: string;
+  signatureUrl?: string;
+};
+
+export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplate = {
+  logoUrl: "",
+  logoName: "ALPHA CAPITAL",
+  badgeText: "PHASE 1",
+  title: "Certificate\nOf Achievement",
+  subtitle: "Proudly presented to",
+  bodyText:
+    "The trader has successfully completed the Alpha Capital Group Evaluation. The trader has clearly demonstrated capital management and the ability to effectively manage risk with the set parameters. The profitability of the trader's strategy has been established during the completion of the evaluation period. This trader is officially an Alpha Capital Group Proprietary Trader.",
+  dateText: "26 Aug 2025",
+  signatoryName: "George Kohler",
+  signatoryTitle: "Managing Director",
+  signatureUrl: "",
 };
 
 export type RegistrationSortField = (typeof REGISTRATION_SORT_FIELDS)[number];
@@ -26,6 +56,7 @@ export type LearningTrack = {
   id: string;
   name: string;
   whatsappLink: string;
+  certificateDescription?: string;
   createdAt: string;
   updatedAt: string;
 };

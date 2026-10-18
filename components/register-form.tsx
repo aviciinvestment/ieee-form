@@ -10,7 +10,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ClipboardList, Loader2 } from "lucide-react";
+import { Award, ClipboardList, Loader2 } from "lucide-react";
 import type { AuthStatus, LearningTrack } from "@/lib/types";
 
 const NAME_RE = /^[a-zA-Z]{2,30}$/;
@@ -239,16 +239,17 @@ showAlert("Registration issue", data.error || "Something went wrong. Please try 
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
               {submitting ? "Registering…" : "Register & Join WhatsApp Group"}
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-auto min-h-9 w-full gap-2 whitespace-normal py-2 text-center leading-snug"
-              asChild
-            >
-              <Link href="/quiz">
-                <ClipboardList className="h-4 w-4 shrink-0" /> Already registered? Take your track quizzes
-              </Link>
-            </Button>
+            <div className="pt-2 text-center">
+              <p className="text-xs text-muted-foreground">
+                Already registered?{" "}
+                <Link
+                  href="/user/login"
+                  className="font-medium text-primary underline underline-offset-4 hover:text-primary/80 transition-colors"
+                >
+                  Sign in to Participant Portal
+                </Link>
+              </p>
+            </div>
           </CardFooter>
         </form>
       </Card>

@@ -69,6 +69,29 @@ export function QuizCenter() {
           Verify your Gmail to see the quizzes published for your learning track. Your answers are graded
           automatically, then a community manager reviews the result before you can see your score.
         </p>
+
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-3 text-xs text-muted-foreground">
+          <Link
+            href="/user/login"
+            className="hover:text-primary underline underline-offset-4 transition-colors font-medium text-foreground"
+          >
+            ← Participant Portal
+          </Link>
+          <span>•</span>
+          <Link
+            href="/certificate"
+            className="hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            Certificate of Achievement
+          </Link>
+          <span>•</span>
+          <Link
+            href="/"
+            className="hover:text-foreground underline underline-offset-4 transition-colors"
+          >
+            Registration Form
+          </Link>
+        </div>
       </div>
 
       {!email ? (
@@ -98,9 +121,16 @@ export function QuizCenter() {
               {participant ? (
                 <Badge variant="secondary">Track: {participant.trackName}</Badge>
               ) : null}
-              <Button variant="outline" size="sm" onClick={() => setReloadKey((key) => key + 1)}>
-                <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" asChild className="gap-1.5 border-primary/40 text-primary hover:bg-primary/10">
+                  <Link href="/certificate">
+                    <Award className="h-4 w-4" /> Certificate
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setReloadKey((key) => key + 1)}>
+                  <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+                </Button>
+              </div>
             </CardContent>
           </Card>
 

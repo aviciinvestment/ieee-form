@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { ShieldCheck, Users } from "lucide-react";
+import { Award, ShieldCheck, Users } from "lucide-react";
 import { AppLogo } from "@/components/app-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-4xl">
         <div className="mb-8 text-center">
           <AppLogo size={80} />
           <h1 className="mt-4 text-2xl font-bold tracking-tight md:text-3xl">IEEE Portal Login</h1>
@@ -43,6 +43,15 @@ export default function LoginPage() {
               <CardContent className="text-sm font-medium text-primary">Open manager login →</CardContent>
             </Card>
           </Link>
+        </div>
+
+        <div className="mt-8 rounded-lg border border-primary/25 bg-primary/5 p-4 text-center">
+          <p className="text-sm font-medium">
+            Are you a participant taking a quiz or claiming your certificate?{" "}
+            <Link href="/user/login" className="font-semibold text-primary underline underline-offset-4 hover:text-primary/80 transition-colors">
+              Go to Participant Login →
+            </Link>
+          </p>
         </div>
 
         <p className="mt-8 text-center text-sm text-muted-foreground">

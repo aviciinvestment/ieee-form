@@ -10,13 +10,16 @@ datasource db {
 }
 
 model Registration {
-  id        String   @id @default(uuid())
-  firstName String
-  lastName  String
-  phone     String
-  techSkill String
-  email     String   @unique
-  createdAt DateTime @default(now())
+  id                     String    @id @default(uuid())
+  firstName              String
+  lastName               String
+  phone                  String
+  techSkill              String
+  email                  String    @unique
+  approvedForCertificate Boolean   @default(false)
+  approvedAt             DateTime?
+  approvedBy             String?
+  createdAt              DateTime  @default(now())
 }
 
 model CommunityManager {
@@ -27,11 +30,12 @@ model CommunityManager {
 }
 
 model LearningTrack {
-  id           String   @id @default(uuid())
-  name         String   @unique
-  whatsappLink String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id                     String   @id @default(uuid())
+  name                   String   @unique
+  whatsappLink           String
+  certificateDescription String   @default("")
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 model AppSetting {

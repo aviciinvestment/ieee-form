@@ -6,6 +6,7 @@ import { DashboardShell } from "@/components/dashboard-shell";
 import { usePortalEmail, usePortalSession } from "@/components/use-portal-auth";
 import { RegistrationsManager } from "@/components/registrations-manager";
 import { QuizManager } from "@/components/quiz-manager";
+import { ManagerCertificateEditor } from "@/components/manager-certificate-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -106,6 +107,7 @@ export function CommunityDashboard() {
               lockedTrack={trackName}
               emptyMessage="No participants match your filters in your track yet."
             />
+            <ManagerCertificateEditor email={portalEmail} trackName={trackName} />
             <QuizManager email={portalEmail} trackOptions={[trackName]} lockedTrack={trackName} />
           </>
         ) : null}

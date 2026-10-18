@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ArrowUpDown, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, Award, CheckCircle2, Loader2, Pencil, Plus, RefreshCw, Search, Trash2, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -79,7 +79,7 @@ export type RegistrationsManagerProps = {
 };
 
 export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage }: RegistrationsManagerProps) {
-  const { confirm, dialogs } = useModal();
+  const { showAlert, confirm, dialogs } = useModal();
   const [filters, setFilters] = useState<Filters>(DEFAULT_FILTERS);
   const [qInput, setQInput] = useState("");
   const [rows, setRows] = useState<Registration[]>([]);
@@ -90,6 +90,7 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
   const [dialog, setDialog] = useState<DialogState>(null);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [approvingId, setApprovingId] = useState<string | null>(null);
 
   const trackOptions = useMemo(() => {
     const all = lockedTrack ? [lockedTrack, ...tracks] : tracks;
@@ -252,6 +253,44 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
       setError("Network error. Could not delete this user.");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  async function toggleCertificateApproval(r: Registration) {
+    const nextState = !r.approvedForCertificate;
+    setApprovingId(r.id);
+    try {
+      const res = await fetch(`/api/registrations/${r.id}/approve-certificate`, {
+        method: "POST",
+        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        body: JSON.stringify({ approved: nextState }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setRows((prev) =>
+          prev.map((row) =>
+            row.id === r.id
+              ? {
+                  ...row,
+                  approvedForCertificate: nextState,
+                  approvedAt: nextState ? new Date().toISOString() : null,
+                  approvedBy: nextState ? email : null,
+                }
+              : row
+          )
+        );
+        showAlert(
+          nextState ? "Certificate Approved" : "Approval Revoked",
+          data.message || (nextState ? "Participant approved for certificate." : "Certificate approval revoked."),
+          "success"
+        );
+      } else {
+        showAlert("Error", data.error || "Failed to update certificate approval.", "error");
+      }
+    } catch {
+      showAlert("Network error", "Failed to update certificate approval. Please try again.", "error");
+    } finally {
+      setApprovingId(null);
     }
   }
 
@@ -466,13 +505,14 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
                   <SortableHead field="track">Track</SortableHead>
                   <SortableHead field="email">Email</SortableHead>
                   <SortableHead field="date">Date</SortableHead>
+                  <TableHead>Certificate</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+                    <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
                       {emptyMessage ?? "No users match your filters."}
                     </TableCell>
                   </TableRow>
@@ -490,6 +530,43 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
                       <TableCell className="text-muted-foreground">{r.email}</TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
                         {formatDateTime(r.createdAt)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {r.approvedForCertificate ? (
+                          <div className="flex items-center gap-1.5">
+                            <Badge
+                              variant="outline"
+                              className="border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 gap-1 font-medium"
+                            >
+                              <Award className="h-3.5 w-3.5" /> Approved
+                            </Badge>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+                              onClick={() => toggleCertificateApproval(r)}
+                              disabled={approvingId === r.id}
+                              title="Revoke certificate approval"
+                            >
+                              {approvingId === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Revoke"}
+                            </Button>
+                          </div>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs border-primary/40 hover:bg-primary/10 text-primary gap-1"
+                            onClick={() => toggleCertificateApproval(r)}
+                            disabled={approvingId === r.id}
+                          >
+                            {approvingId === r.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <Award className="h-3.5 w-3.5" />
+                            )}
+                            Approve
+                          </Button>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">

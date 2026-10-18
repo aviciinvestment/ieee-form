@@ -7,6 +7,7 @@ import { useModal } from "@/components/use-modal";
 import { usePortalEmail, usePortalSession } from "@/components/use-portal-auth";
 import { RegistrationsManager } from "@/components/registrations-manager";
 import { QuizManager } from "@/components/quiz-manager";
+import { CertificateManager } from "@/components/certificate-manager";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -315,6 +316,8 @@ export function AdminDashboard() {
         )}
 
         {portalEmail ? <QuizManager email={portalEmail} trackOptions={trackOptions} /> : null}
+
+        {portalEmail ? <CertificateManager email={portalEmail} /> : null}
 
         <Card className="glass-card">
           <CardHeader>
