@@ -144,8 +144,8 @@ export function CertificateViewer({
             backgroundRepeat: "no-repeat",
           }}
         >
-          {/* Top-Right Logo Section */}
-          <div className="absolute top-[2%] sm:top-[3%] md:top-[4.5%] right-[2%] sm:right-[3%] md:right-[5%] flex items-center gap-1 sm:gap-2 z-10 max-w-[48%] overflow-hidden">
+          {/* Top Logo Section (Center-aligned with certificate content) */}
+          <div className="absolute top-[2%] sm:top-[3%] md:top-[4%] right-[2%] sm:right-[3%] w-[64%] sm:w-[62%] flex items-center justify-center gap-1.5 sm:gap-2.5 z-10 px-2 overflow-hidden text-center">
             {template.logoUrl && !logoLoadError ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -166,7 +166,7 @@ export function CertificateViewer({
                 <polygon points="16,24 23,30 9,30" opacity="0.85" />
               </svg>
             )}
-            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate">
+            <span className="text-[6.5px] sm:text-[9.5px] md:text-sm font-bold uppercase tracking-[0.1em] sm:tracking-[0.2em] text-white/95 truncate text-center">
               {template.logoName || "ALPHA CAPITAL"}
             </span>
           </div>
