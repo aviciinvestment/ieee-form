@@ -23,5 +23,15 @@ export async function GET() {
     };
   }
 
+  try {
+    const authModule = await import("@/lib/auth");
+    diag.auth = { ok: true, adminEmails: authModule.getAdminEmails() };
+  } catch (err: unknown) {
+    diag.auth = {
+      ok: false,
+      error: err instanceof Error ? { message: err.message, stack: err.stack, name: err.name } : String(err),
+    };
+  }
+
   return NextResponse.json(diag);
 }
