@@ -4,10 +4,10 @@ const nextConfig = {
   // Neon is reached over its WebSocket driver, which means `ws` runs on the server. It has to
   // stay outside the server bundle, otherwise its optional native helpers get bundled and
   // `ws` fails at runtime with "bufferUtil.mask is not a function".
-  serverExternalPackages: ["ws", "@neondatabase/serverless", "@prisma/adapter-neon", "@prisma/client", "unpdf", "firebase-admin"],
+  serverExternalPackages: ["ws", "@neondatabase/serverless", "@prisma/adapter-neon", "@prisma/client", "unpdf"],
   experimental: {
-    // unpdf and firebase-admin must not be bundled into the server chunks.
-    serverComponentsExternalPackages: ["ws", "@neondatabase/serverless", "@prisma/adapter-neon", "@prisma/client", "unpdf", "firebase-admin"],
+    // unpdf must not be bundled into the server chunks.
+    serverComponentsExternalPackages: ["ws", "@neondatabase/serverless", "@prisma/adapter-neon", "@prisma/client", "unpdf"],
   },
   async headers() {
     return [
