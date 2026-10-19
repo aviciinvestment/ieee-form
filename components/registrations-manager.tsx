@@ -19,8 +19,7 @@ import type {
   RegistrationSortField,
   SortOrder,
 } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 const PAGE_SIZES = ["10", "25", "50", "100"] as const;
 
@@ -122,7 +121,8 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
         params.set("limit", String(filters.limit));
         params.set("offset", String(filters.offset));
 
-        const res = await fetch(`/api/registrations?${params.toString()}`, { headers: emailHeader(email) });
+        const headers = await getAuthHeaders();
+        const res = await fetch(`/api/registrations?${params.toString()}`, { headers });
         const data = await res.json().catch(() => ({}));
         if (!active) return;
         if (res.status === 401 || data.code === "NO_EMAIL" || data.code === "NO_ROLE") {
@@ -203,9 +203,10 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
     setError("");
     try {
       const isEdit = dialog.mode === "edit" && dialog.id;
+      const headers = await getAuthHeaders();
       const res = await fetch(isEdit ? `/api/registrations/${encodeURIComponent(dialog.id as string)}` : "/api/registrations", {
         method: isEdit ? "PUT" : "POST",
-        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify(dialog.values),
       });
       const data = await res.json().catch(() => ({}));
@@ -232,9 +233,10 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
     setDeletingId(row.id);
     setError("");
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/registrations/${encodeURIComponent(row.id)}`, {
         method: "DELETE",
-        headers: emailHeader(email),
+        headers,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -260,9 +262,10 @@ export function RegistrationsManager({ email, tracks, lockedTrack, emptyMessage 
     const nextState = !r.approvedForCertificate;
     setApprovingId(r.id);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/registrations/${r.id}/approve-certificate`, {
         method: "POST",
-        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ approved: nextState }),
       });
       const data = await res.json().catch(() => ({}));

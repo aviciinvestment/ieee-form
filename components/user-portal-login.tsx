@@ -8,8 +8,7 @@ import { AuthSignIn } from "@/components/auth-sign-in";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 type ParticipantInfo = {
   firstName: string;
@@ -57,8 +56,12 @@ export function UserPortalLogin() {
 
     let active = true;
 
-    fetch("/api/quizzes/available", { headers: emailHeader(email) })
-      .then(async (res) => {
+    void (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        if (!active) return;
+
+        const res = await fetch("/api/quizzes/available", { headers });
         const json = await res.json().catch(() => ({}));
         if (!active) return;
 
@@ -69,34 +72,28 @@ export function UserPortalLogin() {
           setParticipant(json.data.participant);
         } else {
           // Fallback check to certificate endpoint
-          fetch("/api/certificate", { headers: emailHeader(email) })
-            .then(async (certRes) => {
-              const certJson = await certRes.json().catch(() => ({}));
-              if (!active) return;
-              if (certRes.ok && certJson.participant) {
-                setParticipant({
-                  firstName: certJson.participant.firstName,
-                  lastName: certJson.participant.lastName,
-                  email: certJson.participant.email,
-                  trackName: certJson.participant.techSkill,
-                });
-              } else if (certRes.status === 403 || certJson.error?.includes("not registered")) {
-                setNotRegistered(true);
-              } else {
-                setError(json.error || certJson.error || "Could not retrieve participant information.");
-              }
-            })
-            .catch(() => {
-              if (active) setError("Network error checking participant registration.");
+          const certRes = await fetch("/api/certificate", { headers });
+          const certJson = await certRes.json().catch(() => ({}));
+          if (!active) return;
+          if (certRes.ok && certJson.participant) {
+            setParticipant({
+              firstName: certJson.participant.firstName,
+              lastName: certJson.participant.lastName,
+              email: certJson.participant.email,
+              trackName: certJson.participant.techSkill,
             });
+          } else if (certRes.status === 403 || certJson.error?.includes("not registered")) {
+            setNotRegistered(true);
+          } else {
+            setError(json.error || certJson.error || "Could not retrieve participant information.");
+          }
         }
-      })
-      .catch(() => {
+      } catch {
         if (active) setError("Network error checking participant registration.");
-      })
-      .finally(() => {
+      } finally {
         if (active) setLoading(false);
-      });
+      }
+    })();
 
     return () => {
       active = false;

@@ -9,8 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useModal } from "@/components/use-modal";
 import { DEFAULT_CERTIFICATE_TEMPLATE, MAX_CERTIFICATE_BODY_LENGTH, type CertificateTemplate } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 type Props = {
   email: string;
@@ -118,10 +117,11 @@ export function CertificateManager({ email }: Props) {
   async function saveTemplate() {
     setSaving(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/certificate/template", {
         method: "PUT",
         headers: {
-          ...emailHeader(email),
+          ...headers,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(template),

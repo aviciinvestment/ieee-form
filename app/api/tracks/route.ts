@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin } from "@/lib/auth";
+import { accessDeniedResponse, getAdminAccess } from "@/lib/auth";
+import { trackSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -18,24 +19,29 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden: Only the Admin can add learning tracks." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
-    let body: { name?: string; whatsappLink?: string };
+    let body: unknown;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const { name, whatsappLink } = body;
-    if (!name || !whatsappLink) {
-      return NextResponse.json({ error: "Track name and WhatsApp group link are required." }, { status: 400 });
+    const parsed = trackSchema.safeParse(body);
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message || "Validation failed.";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
 
-    const existing = await prisma.learningTrack.findUnique({ where: { name } });
+    const { name, whatsappLink } = parsed.data;
+
+    const existing = await prisma.learningTrack.findFirst({
+      where: { name: { equals: name, mode: "insensitive" } },
+    });
     if (existing) {
       return NextResponse.json({ error: "A learning track with this name already exists." }, { status: 400 });
     }

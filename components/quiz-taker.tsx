@@ -12,8 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { formatDateTime } from "@/lib/format";
 import { GRADING_METHOD_LABELS, type AttemptResultView, type TakeQuestion } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 type UploadedPdf = { url: string; fileName: string; pages: number; characters: number; text: string };
 type AnswerEntry = { selectedOptionId: string | null; responseText: string; file?: UploadedPdf };
@@ -74,7 +73,8 @@ export function QuizTaker({ quizId }: { quizId: string }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`/api/quizzes/${encodeURIComponent(quizId)}/take`, { headers: emailHeader(email) });
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/quizzes/${encodeURIComponent(quizId)}/take`, { headers });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setPayload(null);
@@ -135,7 +135,8 @@ export function QuizTaker({ quizId }: { quizId: string }) {
     try {
       const body = new FormData();
       body.append("file", file);
-      const res = await fetch("/api/uploads/pdf", { method: "POST", headers: emailHeader(email as string), body });
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/uploads/pdf", { method: "POST", headers, body });
       const payload = (await res.json().catch(() => ({}))) as {
         error?: string;
         data?: { url: string; fileName: string; pagesAnalysed: number; characters: number; maxPages: number; text: string };
@@ -181,9 +182,10 @@ export function QuizTaker({ quizId }: { quizId: string }) {
     setSubmitting(true);
     setError("");
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(quizId)}/submit`, {
         method: "POST",
-        headers: { ...emailHeader(email as string), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           answers: questions.map((question) => ({
             questionId: question.id,

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AuthSignIn } from "@/components/auth-sign-in";
+import { getAuthHeaders } from "@/lib/firebase";
 
 type Props = {
   requiredRole: "admin" | "manager";
@@ -21,10 +22,10 @@ export function PortalLoginForm({ requiredRole, redirectPath }: Props) {
     setChecking(true);
     let active = true;
 
-    fetch("/api/auth/role", {
-      headers: { "X-User-Email": verifiedEmail },
-    })
-      .then(async (res) => {
+    void (async () => {
+      try {
+        const headers = await getAuthHeaders();
+        const res = await fetch("/api/auth/role", { headers });
         const data = await res.json().catch(() => ({}));
         if (!active) return;
         if (res.ok && data.role === requiredRole) {
@@ -40,12 +41,12 @@ export function PortalLoginForm({ requiredRole, redirectPath }: Props) {
           setStatus({ text: `You are not authorized as ${label}. Please contact the administrator.`, kind: "error" });
         }
         setChecking(false);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setStatus({ text: "Could not verify your access. Please try again.", kind: "error" });
         setChecking(false);
-      });
+      }
+    })();
 
     return () => {
       active = false;

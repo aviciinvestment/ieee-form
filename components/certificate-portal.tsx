@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { CertificateTemplate } from "@/lib/types";
+import { getAuthHeaders } from "@/lib/firebase";
 
 type ParticipantData = {
   id: string;
@@ -28,8 +29,6 @@ type CertificateResponse = {
   error?: string;
 };
 
-const emailHeader = (email: string) => ({ "X-User-Email": email });
-
 export function CertificatePortal() {
   const [email, setEmail] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,8 +39,9 @@ export function CertificatePortal() {
     setLoading(true);
     setError("");
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/certificate", {
-        headers: emailHeader(userEmail),
+        headers,
       });
       const data = (await res.json().catch(() => ({}))) as CertificateResponse;
       if (!res.ok) {

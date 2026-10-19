@@ -5,8 +5,41 @@ const nextConfig = {
   // stay outside the server bundle, otherwise its optional native helpers get bundled and
   // `ws` fails at runtime with "bufferUtil.mask is not a function".
   experimental: {
-    // unpdf ships its own pdf.js build for Node, so it must not be bundled into the server chunks.
-    serverComponentsExternalPackages: ["ws", "@neondatabase/serverless", "unpdf"],
+    // unpdf and firebase-admin must not be bundled into the server chunks.
+    serverComponentsExternalPackages: ["ws", "@neondatabase/serverless", "unpdf", "firebase-admin"],
+  },
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          {
+            key: "X-Frame-Options",
+            value: "DENY",
+          },
+          {
+            key: "X-Content-Type-Options",
+            value: "nosniff",
+          },
+          {
+            key: "Referrer-Policy",
+            value: "strict-origin-when-cross-origin",
+          },
+          {
+            key: "Permissions-Policy",
+            value: "camera=(), microphone=(), geolocation=()",
+          },
+          {
+            key: "X-XSS-Protection",
+            value: "1; mode=block",
+          },
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains; preload",
+          },
+        ],
+      },
+    ];
   },
 };
 

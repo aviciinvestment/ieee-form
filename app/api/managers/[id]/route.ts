@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin } from "@/lib/auth";
+import { accessDeniedResponse, getAdminAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 /** Both handlers address a manager by its row id, the same value the dashboard already holds. */
 export async function PUT(req: Request, { params }: { params: { id: string } }) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
     let body: { trackName?: string };
@@ -41,9 +41,9 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
 export async function DELETE(req: Request, { params }: { params: { id: string } }) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
     await prisma.communityManager.delete({ where: { id: params.id } });

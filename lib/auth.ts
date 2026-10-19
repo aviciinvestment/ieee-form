@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyFirebaseIdToken } from "@/lib/firebase-admin";
 
 export type AuthRole = {
   role: "admin" | "manager" | "none";
@@ -30,9 +31,34 @@ export async function readRole(email: string | null | undefined): Promise<AuthRo
   return { role: "none" };
 }
 
+/** Extracts the Bearer token from the Authorization header. */
+export function getBearerToken(req: Request): string | null {
+  const authHeader = req.headers.get("authorization");
+  if (!authHeader) return null;
+  const match = authHeader.match(/^Bearer\s+(.+)$/i);
+  return match ? match[1].trim() : null;
+}
+
+/**
+ * Verifies the incoming Firebase ID token from the Authorization header
+ * and returns the authenticated user's email.
+ * Client-supplied X-User-Email is completely rejected to prevent spoofing.
+ */
+export async function getVerifiedRequestEmail(req: Request): Promise<string | null> {
+  const token = getBearerToken(req);
+  if (!token) return null;
+
+  const decoded = await verifyFirebaseIdToken(token);
+  if (!decoded || !decoded.email) return null;
+  return decoded.email.trim().toLowerCase();
+}
+
+/**
+ * @deprecated Use getVerifiedRequestEmail instead. Kept only for transition diagnostics.
+ */
 export function getRequestEmail(req: Request): string | null {
-  const header = req.headers.get("x-user-email");
-  return header ? header.trim() : null;
+  console.warn("DEPRECATED: getRequestEmail called. Authentication now requires verified Bearer tokens.");
+  return null;
 }
 
 export type ManagerAccess =
@@ -42,23 +68,18 @@ export type ManagerAccess =
       ok: false;
       status: number;
       error: string;
-      /**
-       * Lets the browser tell a genuine session problem apart from a manager who simply has no
-       * track yet. The two need different screens: one asks for a new sign in, the other asks the
-       * admin to finish assigning a track.
-       */
       code: "NO_EMAIL" | "NO_ROLE" | "NO_TRACK";
     };
 
 /** Admin-or-manager gate used by every portal management endpoint. */
 export async function getManagerAccess(req: Request): Promise<ManagerAccess> {
-  const email = getRequestEmail(req);
+  const email = await getVerifiedRequestEmail(req);
   if (!email) {
     return {
       ok: false,
       status: 401,
       code: "NO_EMAIL",
-      error: "Unauthorized: Missing email authentication header.",
+      error: "Unauthorized: Missing or invalid authentication token. Please sign in again.",
     };
   }
 
@@ -72,7 +93,7 @@ export async function getManagerAccess(req: Request): Promise<ManagerAccess> {
     };
   }
 
-  if (role.role === "admin") return { ok: true, role: "admin", email: email.trim().toLowerCase() };
+  if (role.role === "admin") return { ok: true, role: "admin", email };
 
   if (!role.trackName) {
     return {
@@ -84,7 +105,27 @@ export async function getManagerAccess(req: Request): Promise<ManagerAccess> {
     };
   }
 
-  return { ok: true, role: "manager", trackName: role.trackName, email: email.trim().toLowerCase() };
+  return { ok: true, role: "manager", trackName: role.trackName, email };
+}
+
+export type AdminAccess =
+  | { ok: true; email: string }
+  | { ok: false; status: number; error: string; code?: string };
+
+/** Strict admin-only gate for endpoints modifying managers, tracks, or templates. */
+export async function getAdminAccess(req: Request): Promise<AdminAccess> {
+  const access = await getManagerAccess(req);
+  if (!access.ok) {
+    return access;
+  }
+  if (access.role !== "admin") {
+    return {
+      ok: false,
+      status: 403,
+      error: "Forbidden: Only an administrator can perform this action.",
+    };
+  }
+  return { ok: true, email: access.email };
 }
 
 /** Turns a failed access check into the JSON body every portal endpoint returns. */
@@ -100,16 +141,16 @@ export type ParticipantAccess =
   | { ok: false; status: number; error: string };
 
 /**
- * Participants are identified by the Gmail address they registered with. Their
- * track always comes from the database so a client cannot claim another track.
+ * Participants are identified by the verified Gmail address in their Firebase ID token.
+ * Their track always comes from the database so a client cannot claim another track.
  */
 export async function getParticipantAccess(req: Request): Promise<ParticipantAccess> {
-  const email = getRequestEmail(req);
+  const email = await getVerifiedRequestEmail(req);
   if (!email) {
-    return { ok: false, status: 401, error: "Unauthorized: Please verify your Gmail address first." };
+    return { ok: false, status: 401, error: "Unauthorized: Please sign in with your verified Gmail address first." };
   }
 
-  const registration = await prisma.registration.findUnique({ where: { email: email.toLowerCase() } });
+  const registration = await prisma.registration.findUnique({ where: { email } });
   if (!registration) {
     return {
       ok: false,

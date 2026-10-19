@@ -9,8 +9,7 @@ import { QuizManager } from "@/components/quiz-manager";
 import { ManagerCertificateEditor } from "@/components/manager-certificate-editor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 export function CommunityDashboard() {
   const portalEmail = usePortalEmail();
@@ -24,25 +23,28 @@ export function CommunityDashboard() {
     if (state !== "granted" || !portalEmail) return;
 
     let active = true;
-    fetch("/api/auth/role", { headers: emailHeader(portalEmail) })
-      .then((r) => r.json())
-      .then((d) => {
-        if (!active) return;
-        if (d.role !== "manager") {
-          window.location.href = "/login";
-          return;
-        }
-        setTrackName(d.track ?? "");
-        setCheckedRole(true);
-        setSubtitle(
-          `Search, add, update and remove the participants in your track, and publish quizzes${
-            d.track ? ` — ${d.track}` : ""
-          }`
-        );
-      })
-      .catch(() => {
-        if (active) setSubtitle("Search, add, update and remove the participants in your track, and publish quizzes.");
-      });
+    void getAuthHeaders().then((headers) => {
+      if (!active) return;
+      fetch("/api/auth/role", { headers })
+        .then((r) => r.json())
+        .then((d) => {
+          if (!active) return;
+          if (d.role !== "manager") {
+            window.location.href = "/login";
+            return;
+          }
+          setTrackName(d.track ?? "");
+          setCheckedRole(true);
+          setSubtitle(
+            `Search, add, update and remove the participants in your track, and publish quizzes${
+              d.track ? ` — ${d.track}` : ""
+            }`
+          );
+        })
+        .catch(() => {
+          if (active) setSubtitle("Search, add, update and remove the participants in your track, and publish quizzes.");
+        });
+    });
 
     return () => {
       active = false;

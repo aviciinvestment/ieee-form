@@ -502,13 +502,14 @@ export async function gradeSubmission(
     const provided = submitted.get(question.id);
     const selectedOptionId = provided?.selectedOptionId ?? null;
     const typedResponse = (provided?.responseText ?? "").trim().slice(0, MAX_RESPONSE_LENGTH);
+    // Only trust server-extracted answerFiles; client-supplied responseFileText is ignored
     const uploadedFile =
       answerFiles.get(question.id) ??
       (provided?.responseFileUrl
         ? {
             url: provided.responseFileUrl,
-            text: provided.responseFileText?.trim() ?? "",
-            pages: provided.responseFilePages ?? 0,
+            text: "",
+            pages: 0,
           }
         : null);
 

@@ -36,8 +36,7 @@ import {
   type QuizDraft,
   type QuizSummary,
 } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 type Props = {
   email: string;
@@ -87,8 +86,9 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     try {
       const params = new URLSearchParams();
       if (!lockedTrack && trackFilter) params.set("track", trackFilter);
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes${params.toString() ? `?${params.toString()}` : ""}`, {
-        headers: emailHeader(email),
+        headers,
       });
       const data = await res.json().catch(() => ({}));
       if (res.status === 401 || data.code === "NO_EMAIL" || data.code === "NO_ROLE") {
@@ -144,7 +144,8 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     setDraftError("");
     setSaving(false);
     try {
-      const res = await fetch(`/api/quizzes/${encodeURIComponent(id)}`, { headers: emailHeader(email) });
+      const headers = await getAuthHeaders();
+      const res = await fetch(`/api/quizzes/${encodeURIComponent(id)}`, { headers });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error || "Failed to load that quiz.");
@@ -234,11 +235,12 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     setDraftError("");
     try {
       const isEdit = Boolean(draft.id);
+      const headers = await getAuthHeaders();
       const res = await fetch(
         isEdit ? `/api/quizzes/${encodeURIComponent(draft.id as string)}` : "/api/quizzes",
         {
           method: isEdit ? "PUT" : "POST",
-          headers: { ...emailHeader(email), "Content-Type": "application/json" },
+          headers: { ...headers, "Content-Type": "application/json" },
           body: JSON.stringify(toPayload(draft)),
         }
       );
@@ -259,9 +261,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
   async function togglePublished(quiz: QuizSummary) {
     setError("");
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(quiz.id)}`, {
         method: "PUT",
-        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           title: quiz.title,
           description: quiz.description,
@@ -296,9 +299,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     if (!ok) return;
     setError("");
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(quiz.id)}`, {
         method: "DELETE",
-        headers: emailHeader(email),
+        headers,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -318,8 +322,9 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
     setError("");
     setOpenAttempt(null);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(quiz.id)}/attempts`, {
-        headers: emailHeader(email),
+        headers,
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -360,9 +365,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
 
     setPublishingId(attempt.id);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(attempts?.quiz.id ?? "")}/publish`, {
         method: "POST",
-        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({
           attemptId: attempt.id,
           adjustedScore: score === "" ? null : score,
@@ -393,9 +399,10 @@ export function QuizManager({ email, trackOptions, lockedTrack }: Props) {
 
     setPublishingId(attempt.id);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/quizzes/${encodeURIComponent(attempts?.quiz.id ?? "")}/publish`, {
         method: "DELETE",
-        headers: { ...emailHeader(email), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ attemptId: attempt.id }),
       });
       const data = await res.json().catch(() => ({}));

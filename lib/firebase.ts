@@ -35,3 +35,43 @@ export async function getFirebase(): Promise<FirebaseBundle> {
   bundle = { app, auth, provider };
   return bundle;
 }
+
+/**
+ * Retrieves the authenticated Firebase user's ID token and formats it as an Authorization header.
+ * Waits briefly for auth resolution on initial page mounts so tokens are never dropped on refresh.
+ */
+export async function getAuthHeaders(): Promise<Record<string, string>> {
+  try {
+    const { auth } = await getFirebase();
+    if (auth.currentUser) {
+      const token = await auth.currentUser.getIdToken();
+      return { Authorization: `Bearer ${token}` };
+    }
+
+    const token = await new Promise<string | null>((resolve) => {
+      const unsubscribe = auth.onAuthStateChanged(async (user) => {
+        unsubscribe();
+        if (user) {
+          try {
+            resolve(await user.getIdToken());
+          } catch {
+            resolve(null);
+          }
+        } else {
+          resolve(null);
+        }
+      });
+      setTimeout(() => {
+        unsubscribe();
+        resolve(null);
+      }, 3000);
+    });
+
+    if (token) {
+      return { Authorization: `Bearer ${token}` };
+    }
+  } catch (error) {
+    console.warn("Failed to retrieve Firebase auth token:", error);
+  }
+  return {};
+}

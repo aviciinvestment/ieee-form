@@ -12,8 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { quizWindowState } from "@/lib/quiz-window";
 import type { AvailableQuiz } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 export function QuizCenter() {
   const [email, setEmail] = useState<string | null>(null);
@@ -31,7 +30,8 @@ export function QuizCenter() {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch("/api/quizzes/available", { headers: emailHeader(email) });
+      const headers = await getAuthHeaders();
+      const res = await fetch("/api/quizzes/available", { headers });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setQuizzes([]);

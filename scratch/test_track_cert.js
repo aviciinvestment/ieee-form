@@ -1,5 +1,6 @@
 async function runTest() {
-  const adminEmail = (process.env.ADMIN_EMAILS || "").split(",")[0] || "victorychibuakunna@gmail.com";
+  const adminEmail = (process.env.ADMIN_EMAILS || "").split(",")[0] || "";
+  const testUserEmail = process.env.TEST_USER_EMAIL || "";
   
   // 1. Get track description
   console.log("--- 1. Get description for 'python programming' ---");
@@ -36,7 +37,7 @@ async function runTest() {
   // 4. Check certificate for participant
   console.log("--- 3. Check certificate for candidate in python programming ---");
   const res3 = await fetch("http://localhost:3000/api/certificate", {
-    headers: { "X-User-Email": "devemmy001@gmail.com" },
+    headers: { "X-User-Email": testUserEmail },
   });
   const d3 = await res3.json();
   console.log("Eligible:", d3.eligible);

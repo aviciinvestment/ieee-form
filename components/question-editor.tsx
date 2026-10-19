@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QUESTION_KIND_LABELS, QUESTION_TYPE_VALUES, type QuestionDraft, type QuestionKind } from "@/lib/types";
+import { getAuthHeaders } from "@/lib/firebase";
 
 let draftCounter = 0;
 function nextKey(prefix: string) {
@@ -63,10 +64,10 @@ export function QuestionEditor({ question, index, total, disabled, onChange, onR
     try {
       const body = new FormData();
       body.append("file", file);
-      // The upload route identifies the signed-in manager through this header.
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/uploads/pdf", {
         method: "POST",
-        headers: { "X-User-Email": email },
+        headers,
         body,
       });
       const payload = (await res.json()) as {

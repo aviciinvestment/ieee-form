@@ -13,8 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import type { CommunityManager, LearningTrack } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 export function AdminDashboard() {
   const portalEmail = usePortalEmail();
@@ -41,7 +40,7 @@ export function AdminDashboard() {
 
   async function loadManagers() {
     try {
-      const res = await fetch("/api/managers", { headers: emailHeader(portalEmail) });
+      const res = await fetch("/api/managers", { headers: await getAuthHeaders() });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setManagers(data.data ?? []);
     } catch {
@@ -74,16 +73,18 @@ export function AdminDashboard() {
     loadManagers();
     loadTracks();
     loadSupportLink();
-    fetch("/api/auth/role", { headers: emailHeader(portalEmail) })
-      .then((r) => r.json())
-      .then((d) => {
-        if (d.role !== "admin") {
-          window.location.href = "/login";
-        }
-      })
-      .catch(() => {
-        /* noop */
-      });
+    void getAuthHeaders().then((headers) =>
+      fetch("/api/auth/role", { headers })
+        .then((r) => r.json())
+        .then((d) => {
+          if (d.role !== "admin") {
+            window.location.href = "/login";
+          }
+        })
+        .catch(() => {
+          /* noop */
+        })
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state, portalEmail]);
 
@@ -101,9 +102,10 @@ export function AdminDashboard() {
 
     setManagerBusy(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/managers", {
         method: "POST",
-        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ email, trackName: newManagerTrack }),
       });
       const data = await res.json().catch(() => ({}));
@@ -129,9 +131,10 @@ export function AdminDashboard() {
     }
     setManagerBusy(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/managers/${encodeURIComponent(id)}`, {
         method: "PUT",
-        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ trackName }),
       });
       const data = await res.json().catch(() => ({}));
@@ -162,7 +165,7 @@ export function AdminDashboard() {
     try {
       const res = await fetch(`/api/managers/${encodeURIComponent(manager.id)}`, {
         method: "DELETE",
-        headers: emailHeader(portalEmail),
+        headers: await getAuthHeaders(),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -185,9 +188,10 @@ export function AdminDashboard() {
     }
     setTrackBusy(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/tracks", {
         method: "POST",
-        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ name: newTrackName.trim(), whatsappLink: newTrackLink.trim() }),
       });
       const data = await res.json().catch(() => ({}));
@@ -214,9 +218,10 @@ export function AdminDashboard() {
     }
     setTrackBusy(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(`/api/tracks/${encodeURIComponent(id)}`, {
         method: "PUT",
-        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ name: edit.name, whatsappLink: edit.whatsappLink }),
       });
       const data = await res.json().catch(() => ({}));
@@ -245,7 +250,7 @@ export function AdminDashboard() {
     try {
       const res = await fetch(`/api/tracks/${encodeURIComponent(id)}`, {
         method: "DELETE",
-        headers: emailHeader(portalEmail),
+        headers: await getAuthHeaders(),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -269,9 +274,10 @@ export function AdminDashboard() {
     }
     setSupportBusy(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/settings/support", {
         method: "PUT",
-        headers: { ...emailHeader(portalEmail), "Content-Type": "application/json" },
+        headers: { ...headers, "Content-Type": "application/json" },
         body: JSON.stringify({ whatsappLink: link }),
       });
       const data = await res.json().catch(() => ({}));

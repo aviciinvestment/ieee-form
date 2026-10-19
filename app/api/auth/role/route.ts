@@ -1,13 +1,13 @@
 import { NextResponse } from "next/server";
-import { getRequestEmail, readRole } from "@/lib/auth";
+import { getVerifiedRequestEmail, readRole } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const email = getRequestEmail(req);
+    const email = await getVerifiedRequestEmail(req);
     if (!email) {
-      return NextResponse.json({ error: "Missing email header" }, { status: 401 });
+      return NextResponse.json({ error: "Missing or invalid authentication token." }, { status: 401 });
     }
     const role = await readRole(email);
     if (role.role === "manager" && role.trackName) {

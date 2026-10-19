@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin } from "@/lib/auth";
+import { accessDeniedResponse, getAdminAccess } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
     const managers = await prisma.communityManager.findMany({
@@ -23,9 +23,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden: Only the Admin can add managers." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
     let body: { email?: string; trackName?: string };

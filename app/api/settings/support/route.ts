@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getRequestEmail, isMainAdmin } from "@/lib/auth";
+import { accessDeniedResponse, getAdminAccess } from "@/lib/auth";
+import { whatsappLinkSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
 const SUPPORT_KEY = "support_whatsapp_link";
-
-function isValidLink(value: string): boolean {
-  return /^https?:\/\/.+/.test(value);
-}
 
 export async function GET() {
   try {
@@ -22,9 +19,9 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const userEmail = getRequestEmail(req);
-    if (!isMainAdmin(userEmail)) {
-      return NextResponse.json({ error: "Forbidden: Only the Admin can update the support link." }, { status: 403 });
+    const access = await getAdminAccess(req);
+    if (!access.ok) {
+      return accessDeniedResponse(access);
     }
 
     let body: { whatsappLink?: string };
@@ -34,14 +31,21 @@ export async function PUT(req: Request) {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    const link = (body.whatsappLink ?? "").trim();
-    if (!link) {
+    const rawLink = typeof body.whatsappLink === "string" ? body.whatsappLink.trim() : "";
+    if (!rawLink) {
       await prisma.appSetting.deleteMany({ where: { key: SUPPORT_KEY } });
       return NextResponse.json({ message: "Support link cleared", whatsappLink: null });
     }
-    if (!isValidLink(link)) {
-      return NextResponse.json({ error: "Please enter a valid link (must start with http:// or https://)." }, { status: 400 });
+
+    const parsed = whatsappLinkSchema.safeParse(rawLink);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "WhatsApp support link must start with https://chat.whatsapp.com/ or https://wa.me/" },
+        { status: 400 }
+      );
     }
+
+    const link = parsed.data;
 
     await prisma.appSetting.upsert({
       where: { key: SUPPORT_KEY },

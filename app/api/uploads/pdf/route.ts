@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 
-import { accessDeniedResponse, getManagerAccess, getParticipantAccess, getRequestEmail } from "@/lib/auth";
+import { accessDeniedResponse, getManagerAccess, getParticipantAccess } from "@/lib/auth";
 import { isCloudinaryConfigured, uploadPdf } from "@/lib/cloudinary";
 import { assertPdfWithinPageLimit, extractPdfText, MAX_PDF_BYTES, MAX_PDF_PAGES, PdfError } from "@/lib/pdf";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -10,17 +11,13 @@ export const runtime = "nodejs";
 const MAX_UPLOADS_PER_HOUR = 40;
 
 /** Managers and participants both upload through here; nothing else may call the upload. */
-async function canUpload(req: Request): Promise<{ ok: true; role: "admin" | "manager" | "participant" } | { ok: false; status: number; error: string; code?: string }> {
-  if (!getRequestEmail(req)) {
-    return { ok: false, status: 401, error: "Unauthorized: Missing email authentication header." };
-  }
-
+async function canUpload(req: Request): Promise<{ ok: true; role: "admin" | "manager" | "participant"; email: string } | { ok: false; status: number; error: string; code?: string }> {
   const manager = await getManagerAccess(req);
-  if (manager.ok) return { ok: true, role: manager.role };
+  if (manager.ok) return { ok: true, role: manager.role, email: manager.email };
   if (manager.status === 403) {
     // Not a manager, but registered participants can answer with a PDF.
     const participant = await getParticipantAccess(req);
-    if (participant.ok) return { ok: true, role: "participant" };
+    if (participant.ok) return { ok: true, role: "participant", email: participant.registration.email };
     return { ok: false, status: 403, error: "Forbidden: only the main admin, track managers and registered participants can upload a PDF." };
   }
 
@@ -60,8 +57,14 @@ export async function POST(req: Request) {
     }
 
     const fileName = (file.name || "document.pdf").trim();
-    if (!/\.pdf$/i.test(fileName) && file.type !== "application/pdf") {
-      return NextResponse.json({ error: "Only PDF files are accepted." }, { status: 415 });
+    const isPdfExtension = /\.pdf$/i.test(fileName);
+    const isPdfMime = file.type === "application/pdf" || file.type === "application/x-pdf";
+
+    if (!isPdfExtension || !isPdfMime) {
+      return NextResponse.json(
+        { error: "Only PDF files (.pdf) with a valid PDF MIME type are accepted." },
+        { status: 415 }
+      );
     }
     if (file.size === 0) {
       return NextResponse.json({ error: "That PDF is empty." }, { status: 400 });
@@ -73,22 +76,36 @@ export async function POST(req: Request) {
       );
     }
     if (MAX_UPLOADS_PER_HOUR > 0) {
-      // Cheap abuse guard: one upload per second is enough for a human.
-      const key = `upload:${access.role}:${getRequestEmail(req)}`;
-      const bucket = (globalThis as { __pdfUploadBuckets?: Map<string, { count: number; resetAt: number }> }).__pdfUploadBuckets
-        ?? ((globalThis as { __pdfUploadBuckets?: Map<string, { count: number; resetAt: number }> }).__pdfUploadBuckets = new Map());
-      const now = Date.now();
-      const entry = bucket.get(key);
-      if (!entry || entry.resetAt < now) {
-        bucket.set(key, { count: 1, resetAt: now + 3_600_000 });
-      } else if (entry.count >= MAX_UPLOADS_PER_HOUR) {
-        return NextResponse.json({ error: "Too many PDF uploads. Try again later." }, { status: 429 });
-      } else {
-        entry.count += 1;
+      const userLimit = await rateLimit(`upload:${access.email}`, {
+        max: MAX_UPLOADS_PER_HOUR,
+        windowSeconds: 3600,
+        prefix: "pdf-upload",
+      });
+      if (!userLimit.ok) {
+        return NextResponse.json(
+          { error: "Too many PDF uploads. Please try again later." },
+          { status: 429, headers: { "Retry-After": String(userLimit.retryAfterSeconds ?? 60) } }
+        );
       }
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Validate magic bytes: PDF specification requires files to start with "%PDF-" (hex: 25 50 44 46 2d)
+    const isPdfMagic =
+      buffer.length >= 5 &&
+      buffer[0] === 0x25 && // %
+      buffer[1] === 0x50 && // P
+      buffer[2] === 0x44 && // D
+      buffer[3] === 0x46 && // F
+      buffer[4] === 0x2d;   // -
+
+    if (!isPdfMagic) {
+      return NextResponse.json(
+        { error: "Invalid file format: file content does not match the PDF specification (missing %PDF- header)." },
+        { status: 400 }
+      );
+    }
 
     let extracted;
     try {

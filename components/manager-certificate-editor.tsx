@@ -7,8 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useModal } from "@/components/use-modal";
 import { MAX_CERTIFICATE_BODY_LENGTH } from "@/lib/types";
-
-const emailHeader = (email: string) => ({ "X-User-Email": email });
+import { getAuthHeaders } from "@/lib/firebase";
 
 type Props = {
   email: string;
@@ -26,9 +25,10 @@ export function ManagerCertificateEditor({ email, trackName }: Props) {
   async function loadDescription() {
     setLoading(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch(
         `/api/certificate/track-description?track=${encodeURIComponent(trackName)}`,
-        { headers: emailHeader(email) }
+        { headers }
       );
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
@@ -52,10 +52,11 @@ export function ManagerCertificateEditor({ email, trackName }: Props) {
   async function handleSave() {
     setSaving(true);
     try {
+      const headers = await getAuthHeaders();
       const res = await fetch("/api/certificate/track-description", {
         method: "PUT",
         headers: {
-          ...emailHeader(email),
+          ...headers,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ trackName, description }),

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { accessDeniedResponse, getManagerAccess } from "@/lib/auth";
 import { DEFAULT_CERTIFICATE_TEMPLATE, type CertificateTemplate } from "@/lib/types";
+import { certificateTemplateSchema } from "@/lib/validations";
 
 export const dynamic = "force-dynamic";
 
@@ -51,19 +52,20 @@ export async function PUT(req: Request) {
       );
     }
 
-    let body: Partial<CertificateTemplate>;
+    let body: unknown;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
     }
 
-    if (body.bodyText && body.bodyText.trim().length > 280) {
-      return NextResponse.json(
-        { error: "Certificate description cannot exceed 280 characters to ensure it fits neatly on all devices." },
-        { status: 400 }
-      );
+    const parsed = certificateTemplateSchema.safeParse(body);
+    if (!parsed.success) {
+      const message = parsed.error.issues[0]?.message || "Validation failed.";
+      return NextResponse.json({ error: message }, { status: 400 });
     }
+
+    const validData = parsed.data;
 
     const currentSetting = await prisma.appSetting.findUnique({
       where: { key: SETTING_KEY },
@@ -78,16 +80,16 @@ export async function PUT(req: Request) {
     }
 
     const updatedTemplate: CertificateTemplate = {
-      logoUrl: typeof body.logoUrl === "string" ? body.logoUrl.trim() : current.logoUrl,
-      logoName: typeof body.logoName === "string" && body.logoName.trim() ? body.logoName.trim() : current.logoName,
-      badgeText: typeof body.badgeText === "string" && body.badgeText.trim() ? body.badgeText.trim() : current.badgeText,
-      title: typeof body.title === "string" && body.title.trim() ? body.title.trim() : current.title,
-      subtitle: typeof body.subtitle === "string" && body.subtitle.trim() ? body.subtitle.trim() : current.subtitle,
-      bodyText: typeof body.bodyText === "string" && body.bodyText.trim() ? body.bodyText.trim() : current.bodyText,
-      dateText: typeof body.dateText === "string" && body.dateText.trim() ? body.dateText.trim() : current.dateText,
-      signatoryName: typeof body.signatoryName === "string" && body.signatoryName.trim() ? body.signatoryName.trim() : current.signatoryName,
-      signatoryTitle: typeof body.signatoryTitle === "string" && body.signatoryTitle.trim() ? body.signatoryTitle.trim() : current.signatoryTitle,
-      signatureUrl: typeof body.signatureUrl === "string" ? body.signatureUrl.trim() : current.signatureUrl,
+      logoUrl: validData.logoUrl !== undefined ? validData.logoUrl : current.logoUrl,
+      logoName: validData.logoName !== undefined ? validData.logoName : current.logoName,
+      badgeText: validData.badgeText !== undefined ? validData.badgeText : current.badgeText,
+      title: validData.title !== undefined ? validData.title : current.title,
+      subtitle: validData.subtitle !== undefined ? validData.subtitle : current.subtitle,
+      bodyText: validData.bodyText !== undefined ? validData.bodyText : current.bodyText,
+      dateText: validData.dateText !== undefined ? validData.dateText : current.dateText,
+      signatoryName: validData.signatoryName !== undefined ? validData.signatoryName : current.signatoryName,
+      signatoryTitle: validData.signatoryTitle !== undefined ? validData.signatoryTitle : current.signatoryTitle,
+      signatureUrl: validData.signatureUrl !== undefined ? validData.signatureUrl : current.signatureUrl,
     };
 
     await prisma.appSetting.upsert({

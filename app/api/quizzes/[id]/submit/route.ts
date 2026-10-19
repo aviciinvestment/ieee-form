@@ -6,6 +6,7 @@ import { extractPdfTextFromCloudinary, PdfError, sanitizeExtractedText } from "@
 import { isManagedPdfUrl } from "@/lib/cloudinary";
 import { closeAttempt } from "@/lib/attempts";
 import { isSubmissionLate } from "@/lib/quiz-timer";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -13,9 +14,8 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
 /**
- * Picks the text the AI will grade for every PDF answer. The text extracted during the upload is
- * used when the client sends it; otherwise we try to read the document from Cloudinary ourselves,
- * which is the only option on accounts that do not allow public delivery.
+ * Extracts the text the AI will grade for every PDF answer directly from Cloudinary server-side.
+ * Client-submitted responseFileText is strictly ignored to prevent answer tampering.
  */
 async function readUploadedAnswerFiles(
   questions: { id: string }[],
@@ -29,16 +29,7 @@ async function readUploadedAnswerFiles(
     if (!answer.responseFileUrl || !knownQuestionIds.has(answer.questionId)) continue;
     if (!isManagedPdfUrl(answer.responseFileUrl)) continue;
 
-    const supplied = sanitizeExtractedText(answer.responseFileText);
-    if (supplied) {
-      files.set(answer.questionId, {
-        url: answer.responseFileUrl,
-        text: supplied,
-        pages: answer.responseFilePages,
-      });
-      continue;
-    }
-
+    // Server-side text extraction from the uploaded PDF:
     try {
       const extracted = await extractPdfTextFromCloudinary(answer.responseFileUrl);
       files.set(answer.questionId, {
@@ -60,6 +51,18 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     const access = await getParticipantAccess(req);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });
+    }
+
+    const submitLimit = await rateLimit(`submit:${access.registration.email}`, {
+      max: 5,
+      windowSeconds: 600,
+      prefix: "quiz-submit",
+    });
+    if (!submitLimit.ok) {
+      return NextResponse.json(
+        { error: "Too many submission attempts. Please wait a few minutes before trying again." },
+        { status: 429, headers: { "Retry-After": String(submitLimit.retryAfterSeconds ?? 60) } }
+      );
     }
 
     const quiz = await prisma.quiz.findUnique({

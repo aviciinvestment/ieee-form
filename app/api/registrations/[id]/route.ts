@@ -4,8 +4,6 @@ import { prisma } from "@/lib/prisma";
 import {
   accessDeniedResponse,
   getManagerAccess,
-  getRequestEmail,
-  isMainAdmin,
   type ManagerAccess,
 } from "@/lib/auth";
 import { parseRegistrationInput } from "@/lib/registrations";
@@ -114,7 +112,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
 
     return NextResponse.json({
       data: found.registration,
-      isAdmin: found.isAdmin || isMainAdmin(getRequestEmail(req)),
+      isAdmin: found.isAdmin,
     });
   } catch (error) {
     console.error("Fetch Registration Error:", error);
