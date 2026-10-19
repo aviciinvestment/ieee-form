@@ -3,12 +3,43 @@
 import { useEffect, useState } from "react";
 import { Loader2, Plus, Save, Trash2 } from "lucide-react";
 import { DashboardShell } from "@/components/dashboard-shell";
+import dynamic from "next/dynamic";
 import { useModal } from "@/components/use-modal";
 import { usePortalEmail, usePortalSession } from "@/components/use-portal-auth";
-import { RegistrationsManager } from "@/components/registrations-manager";
-import { QuizManager } from "@/components/quiz-manager";
-import { CertificateManager } from "@/components/certificate-manager";
 import { Button } from "@/components/ui/button";
+
+const RegistrationsManager = dynamic(
+  () => import("@/components/registrations-manager").then((m) => m.RegistrationsManager),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
+
+const QuizManager = dynamic(
+  () => import("@/components/quiz-manager").then((m) => m.QuizManager),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
+
+const CertificateManager = dynamic(
+  () => import("@/components/certificate-manager").then((m) => m.CertificateManager),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";

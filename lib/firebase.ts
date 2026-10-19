@@ -11,18 +11,35 @@ export type FirebaseBundle = {
 
 let bundle: FirebaseBundle | null = null;
 
+function getEnvConfig(): Record<string, string> | null {
+  if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+    return {
+      apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+      authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN || "",
+      projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || "",
+      storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || "",
+      messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
+      appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "",
+      measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || "",
+    };
+  }
+  return null;
+}
+
 export async function getFirebase(): Promise<FirebaseBundle> {
   if (bundle) return bundle;
 
-  let config: Record<string, string> | null = null;
-  try {
-    const res = await fetch("/api/config/firebase", { cache: "no-store" });
-    if (res.ok) {
-      const json = await res.json();
-      if (json && json.apiKey) config = json;
+  let config: Record<string, string> | null = getEnvConfig();
+  if (!config) {
+    try {
+      const res = await fetch("/api/config/firebase", { cache: "no-store" });
+      if (res.ok) {
+        const json = await res.json();
+        if (json && json.apiKey) config = json;
+      }
+    } catch {
+      config = null;
     }
-  } catch {
-    config = null;
   }
 
   if (!config) {

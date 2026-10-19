@@ -22,41 +22,22 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Track name is required." }, { status: 400 });
     }
 
-    // 1. First check AppSetting cache for fast, reliable lookup
-    const settingKey = `track_cert_desc_${trackName.toLowerCase().trim()}`;
+    // Check LearningTrack column
     let customDescription = "";
-
-    try {
-      const setting = await prisma.appSetting.findUnique({
-        where: { key: settingKey },
-      });
-      if (setting?.value?.trim()) {
-        customDescription = setting.value.trim();
-      }
-    } catch {
-      /* fallback */
-    }
-
-    // 2. If not found in AppSetting, check LearningTrack column via raw SQL or findFirst
     let matchedTrackName = trackName;
-    if (!customDescription) {
-      try {
-        const rows = await prisma.$queryRawUnsafe<Array<{ name: string; certificateDescription?: string }>>(
-          'SELECT name, "certificateDescription" FROM "LearningTrack" WHERE LOWER(name) = LOWER($1) LIMIT 1',
-          trackName
-        );
-        if (rows.length > 0) {
-          matchedTrackName = rows[0].name;
-          if (rows[0].certificateDescription?.trim()) {
-            customDescription = rows[0].certificateDescription.trim();
-          }
-        }
-      } catch {
-        /* fallback */
+
+    const track = await prisma.learningTrack.findFirst({
+      where: { name: { equals: trackName, mode: "insensitive" } },
+    });
+
+    if (track) {
+      matchedTrackName = track.name;
+      if (track.certificateDescription?.trim()) {
+        customDescription = track.certificateDescription.trim();
       }
     }
 
-    // 3. Default template fallback
+    // Default template fallback if track has no custom description
     let defaultBodyText = DEFAULT_CERTIFICATE_TEMPLATE.bodyText;
     try {
       const templateSetting = await prisma.appSetting.findUnique({
@@ -132,24 +113,11 @@ export async function PUT(req: Request) {
       );
     }
 
-    // 1. Save in AppSetting for reliable, type-safe persistence across all environments
-    const settingKey = `track_cert_desc_${targetTrackName.toLowerCase().trim()}`;
-    await prisma.appSetting.upsert({
-      where: { key: settingKey },
-      update: { value: description },
-      create: { key: settingKey, value: description },
+    // Persist cleanly to LearningTrack using Prisma
+    await prisma.learningTrack.update({
+      where: { id: track.id },
+      data: { certificateDescription: description },
     });
-
-    // 2. Also persist to LearningTrack certificateDescription column via raw SQL
-    try {
-      await prisma.$executeRawUnsafe(
-        'UPDATE "LearningTrack" SET "certificateDescription" = $1, "updatedAt" = NOW() WHERE id = $2',
-        description,
-        track.id
-      );
-    } catch (sqlErr) {
-      console.warn("LearningTrack raw update warning (using AppSetting store):", sqlErr);
-    }
 
     return NextResponse.json({
       message: `Certificate description for ${track.name} updated successfully.`,

@@ -5,38 +5,53 @@ import { useRouter } from "next/navigation";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { useFirebaseAccount } from "@/components/use-firebase";
 
-export function usePortalSession(requiredEmail: string) {
+export function usePortalSession(requiredEmail?: string) {
   const router = useRouter();
   const { fb, loadError } = useFirebaseAccount();
   const [state, setState] = useState<"loading" | "granted" | "denied">("loading");
 
   useEffect(() => {
-    if (!requiredEmail || loadError || !fb) {
-      if (!requiredEmail || loadError) setState("denied");
+    if (loadError) {
+      setState("denied");
       return;
     }
+    if (!fb) return;
+
     let disposed = false;
     const unsub = onAuthStateChanged(fb.auth, async (user) => {
-      const ok = user?.email?.toLowerCase() === requiredEmail.toLowerCase();
-      if (ok) {
-        if (!disposed) setState("granted");
+      if (!user || !user.email) {
+        if (!disposed) setState("denied");
         return;
       }
-      if (user) {
+
+      if (requiredEmail && user.email.toLowerCase() !== requiredEmail.toLowerCase()) {
         try {
           await signOut(fb.auth);
         } catch {
           /* noop */
         }
+        try {
+          window.localStorage.removeItem("portal_email");
+          window.localStorage.removeItem("portal_role");
+        } catch {
+          /* noop */
+        }
+        if (!disposed) {
+          setState("denied");
+          window.location.href = "/login";
+        }
+        return;
       }
+
       try {
-        window.localStorage.removeItem("portal_email");
-        window.localStorage.removeItem("portal_role");
+        window.localStorage.setItem("portal_email", user.email.toLowerCase());
       } catch {
         /* noop */
       }
-      window.location.href = "/login";
+
+      if (!disposed) setState("granted");
     });
+
     return () => {
       disposed = true;
       unsub();
@@ -65,12 +80,31 @@ export function usePortalSession(requiredEmail: string) {
 
 export function usePortalEmail(): string {
   const [email, setEmail] = useState("");
+  const { fb } = useFirebaseAccount();
+
   useEffect(() => {
     try {
-      setEmail(window.localStorage.getItem("portal_email") || "");
+      const stored = window.localStorage.getItem("portal_email") || "";
+      if (stored) setEmail(stored);
     } catch {
-      setEmail("");
+      /* noop */
     }
-  }, []);
+
+    if (fb?.auth) {
+      const unsub = onAuthStateChanged(fb.auth, (user) => {
+        if (user?.email) {
+          const lower = user.email.toLowerCase();
+          setEmail(lower);
+          try {
+            window.localStorage.setItem("portal_email", lower);
+          } catch {
+            /* noop */
+          }
+        }
+      });
+      return () => unsub();
+    }
+  }, [fb]);
+
   return email;
 }

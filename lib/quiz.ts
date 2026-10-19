@@ -491,117 +491,113 @@ export async function gradeSubmission(
   const answerFiles = options.answerFiles ?? new Map<string, { url: string; text: string; pages: number }>();
   const submitted = new Map(submission.answers.map((answer) => [answer.questionId, answer]));
 
-  let score = 0;
-  let maxScore = 0;
+  const maxScore = questions.reduce((sum, q) => sum + q.points, 0);
 
-  const answers: GradedAnswerRow[] = [];
+  const answers: GradedAnswerRow[] = await Promise.all(
+    questions.map(async (question) => {
+      const provided = submitted.get(question.id);
+      const selectedOptionId = provided?.selectedOptionId ?? null;
+      const typedResponse = (provided?.responseText ?? "").trim().slice(0, MAX_RESPONSE_LENGTH);
+      // Only trust server-extracted answerFiles; client-supplied responseFileText is ignored
+      const uploadedFile =
+        answerFiles.get(question.id) ??
+        (provided?.responseFileUrl
+          ? {
+              url: provided.responseFileUrl,
+              text: "",
+              pages: 0,
+            }
+          : null);
 
-  for (const question of questions) {
-    maxScore += question.points;
+      const chosenOption = question.options.find((option) => option.id === selectedOptionId);
+      // A PDF answer is analysed as the response; typed text is used when no PDF was uploaded.
+      const writtenResponse = uploadedFile?.text.trim() || typedResponse;
+      // Always keep a human readable response so managers and participants can read results back.
+      const responseText = chosenOption?.label ?? writtenResponse;
 
-    const provided = submitted.get(question.id);
-    const selectedOptionId = provided?.selectedOptionId ?? null;
-    const typedResponse = (provided?.responseText ?? "").trim().slice(0, MAX_RESPONSE_LENGTH);
-    // Only trust server-extracted answerFiles; client-supplied responseFileText is ignored
-    const uploadedFile =
-      answerFiles.get(question.id) ??
-      (provided?.responseFileUrl
-        ? {
-            url: provided.responseFileUrl,
-            text: "",
-            pages: 0,
-          }
-        : null);
+      const referenceAnswers = question.options.filter((option) => option.isCorrect).map((option) => option.label);
 
-    const chosenOption = question.options.find((option) => option.id === selectedOptionId);
-    // A PDF answer is analysed as the response; typed text is used when no PDF was uploaded.
-    const writtenResponse = uploadedFile?.text.trim() || typedResponse;
-    // Always keep a human readable response so managers and participants can read results back.
-    const responseText = chosenOption?.label ?? writtenResponse;
+      let isCorrect = false;
+      let pointsAwarded = 0;
+      let gradedBy: GradingMethodName = "RULES";
+      let similarity: number | null = null;
+      let aiScore: number | null = null;
+      let aiReason = "";
+      let aiModel = "";
 
-    const referenceAnswers = question.options.filter((option) => option.isCorrect).map((option) => option.label);
-
-    let isCorrect = false;
-    let pointsAwarded = 0;
-    let gradedBy: GradingMethodName = "RULES";
-    let similarity: number | null = null;
-    let aiScore: number | null = null;
-    let aiReason = "";
-    let aiModel = "";
-
-    if (question.type === "OBJECTIVE") {
-      isCorrect = Boolean(chosenOption?.isCorrect);
-      pointsAwarded = isCorrect ? question.points : 0;
-    } else if (writtenResponse) {
-      const ruleMatch = referenceAnswers.some((expected) => matchesExpectedAnswer(writtenResponse, expected));
-
-      if (ruleMatch) {
-        // Exact or keyword match: full credit without spending an AI call.
-        isCorrect = true;
-        pointsAwarded = question.points;
-        gradedBy = "RULES";
-        aiReason = "Matched an accepted answer by exact comparison.";
-      } else if (useAi && isAiGradingEnabled() && referenceAnswers.length > 0) {
-        try {
-          const verdict = await gradeWrittenAnswer({
-            prompt: question.prompt,
-            expectedAnswers: referenceAnswers,
-            studentAnswer: writtenResponse,
-            maxPoints: question.points,
-            kind: question.type === "SHORT_TEXT" ? "SHORT_TEXT" : "LONG_TEXT",
-            referenceContext: question.referenceFileText,
-            answerFileText: uploadedFile?.text,
-          });
-          aiScore = round(verdict.fraction, 4);
-          aiReason = verdict.reason;
-          aiModel = verdict.model;
-          gradedBy = "AI";
-
-          isCorrect = verdict.fraction >= 1 - 1e-9;
-          pointsAwarded = round(question.points * verdict.fraction, 2);
-        } catch (error) {
-          console.error("AI grading failed, falling back to exact comparison:", error);
-          aiReason = "AI grading was unavailable, so the exact-match comparison was used instead.";
-        }
-      }
-
-      // Without an AI verdict an answer is either an accepted answer or it is not.
-      if (!aiModel) {
-        isCorrect = ruleMatch;
+      if (question.type === "OBJECTIVE") {
+        isCorrect = Boolean(chosenOption?.isCorrect);
         pointsAwarded = isCorrect ? question.points : 0;
-        gradedBy = "RULES";
-        if (uploadedFile && !ruleMatch) {
-          aiReason = `The uploaded PDF${uploadedFile.pages > 1 ? ` (${uploadedFile.pages} pages)` : ""} did not match an accepted answer by exact comparison, and AI grading was unavailable.`;
+      } else if (writtenResponse) {
+        const ruleMatch = referenceAnswers.some((expected) => matchesExpectedAnswer(writtenResponse, expected));
+
+        if (ruleMatch) {
+          // Exact or keyword match: full credit without spending an AI call.
+          isCorrect = true;
+          pointsAwarded = question.points;
+          gradedBy = "RULES";
+          aiReason = "Matched an accepted answer by exact comparison.";
+        } else if (useAi && isAiGradingEnabled() && referenceAnswers.length > 0) {
+          try {
+            const verdict = await gradeWrittenAnswer({
+              prompt: question.prompt,
+              expectedAnswers: referenceAnswers,
+              studentAnswer: writtenResponse,
+              maxPoints: question.points,
+              kind: question.type === "SHORT_TEXT" ? "SHORT_TEXT" : "LONG_TEXT",
+              referenceContext: question.referenceFileText,
+              answerFileText: uploadedFile?.text,
+            });
+            aiScore = round(verdict.fraction, 4);
+            aiReason = verdict.reason;
+            aiModel = verdict.model;
+            gradedBy = "AI";
+
+            isCorrect = verdict.fraction >= 1 - 1e-9;
+            pointsAwarded = round(question.points * verdict.fraction, 2);
+          } catch (error) {
+            console.error("AI grading failed, falling back to exact comparison:", error);
+            aiReason = "AI grading was unavailable, so the exact-match comparison was used instead.";
+          }
+        }
+
+        // Without an AI verdict an answer is either an accepted answer or it is not.
+        if (!aiModel) {
+          isCorrect = ruleMatch;
+          pointsAwarded = isCorrect ? question.points : 0;
+          gradedBy = "RULES";
+          if (uploadedFile && !ruleMatch) {
+            aiReason = `The uploaded PDF${uploadedFile.pages > 1 ? ` (${uploadedFile.pages} pages)` : ""} did not match an accepted answer by exact comparison, and AI grading was unavailable.`;
+          }
+        }
+
+        // A written question with no reference answer can never be marked correct.
+        if (referenceAnswers.length === 0) {
+          isCorrect = false;
+          pointsAwarded = 0;
+          gradedBy = "RULES";
         }
       }
 
-      // A written question with no reference answer can never be marked correct.
-      if (referenceAnswers.length === 0) {
-        isCorrect = false;
-        pointsAwarded = 0;
-        gradedBy = "RULES";
-      }
-    }
+      return {
+        questionId: question.id,
+        selectedOptionId,
+        responseText,
+        responseFileUrl: uploadedFile?.url ?? "",
+        responseFilePages: uploadedFile?.pages ?? provided?.responseFilePages ?? 0,
+        isCorrect,
+        pointsAwarded,
+        gradedBy,
+        similarity,
+        aiScore,
+        aiReason,
+        aiModel,
+      };
+    })
+  );
 
-    score += pointsAwarded;
-
-    answers.push({
-      questionId: question.id,
-      selectedOptionId,
-      responseText,
-      responseFileUrl: uploadedFile?.url ?? "",
-      responseFilePages: uploadedFile?.pages ?? provided?.responseFilePages ?? 0,
-      isCorrect,
-      pointsAwarded,
-      gradedBy,
-      similarity,
-      aiScore,
-      aiReason,
-      aiModel,
-    });
-  }
-
-  return { score: round(score, 2), maxScore, answers };
+  const totalScore = answers.reduce((sum, a) => sum + a.pointsAwarded, 0);
+  return { score: round(totalScore, 2), maxScore, answers };
 }
 
 function round(value: number, decimals: number): number {

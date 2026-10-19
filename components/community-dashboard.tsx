@@ -2,12 +2,43 @@
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { usePortalEmail, usePortalSession } from "@/components/use-portal-auth";
-import { RegistrationsManager } from "@/components/registrations-manager";
-import { QuizManager } from "@/components/quiz-manager";
-import { ManagerCertificateEditor } from "@/components/manager-certificate-editor";
 import { Button } from "@/components/ui/button";
+
+const RegistrationsManager = dynamic(
+  () => import("@/components/registrations-manager").then((m) => m.RegistrationsManager),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
+
+const QuizManager = dynamic(
+  () => import("@/components/quiz-manager").then((m) => m.QuizManager),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
+
+const ManagerCertificateEditor = dynamic(
+  () => import("@/components/manager-certificate-editor").then((m) => m.ManagerCertificateEditor),
+  {
+    loading: () => (
+      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    ),
+  }
+);
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/firebase";
 

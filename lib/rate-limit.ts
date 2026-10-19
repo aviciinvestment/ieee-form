@@ -17,6 +17,19 @@ const memoryStore: Map<string, MemoryHit[]> =
 
 function checkMemoryRateLimit(key: string, max: number, windowMs: number): RateLimitResult {
   const now = Date.now();
+
+  // Periodically sweep expired keys if memory store exceeds threshold
+  if (memoryStore.size > 250) {
+    for (const [storedKey, storedHits] of memoryStore.entries()) {
+      const active = storedHits.filter((h) => now - h.timestamp < windowMs);
+      if (active.length === 0) {
+        memoryStore.delete(storedKey);
+      } else {
+        memoryStore.set(storedKey, active);
+      }
+    }
+  }
+
   const hits: MemoryHit[] = memoryStore.get(key) ?? [];
   const alive = hits.filter((h: MemoryHit) => now - h.timestamp < windowMs);
 

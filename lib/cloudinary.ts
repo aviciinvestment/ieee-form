@@ -126,9 +126,22 @@ export async function downloadPdf(secureUrl: string): Promise<Buffer> {
     throw new Error("That PDF link is not a managed Cloudinary upload.");
   }
 
-  const res = await fetch(secureUrl);
+  const res = await fetch(secureUrl, {
+    signal: AbortSignal.timeout(15_000),
+  });
   if (!res.ok) {
     throw new Error(`Could not download the PDF (${res.status}).`);
   }
-  return Buffer.from(await res.arrayBuffer());
+
+  const contentLength = res.headers.get("content-length");
+  if (contentLength && Number(contentLength) > 10 * 1024 * 1024) {
+    throw new Error("The PDF exceeds the maximum allowed size of 10MB.");
+  }
+
+  const arrayBuffer = await res.arrayBuffer();
+  if (arrayBuffer.byteLength > 10 * 1024 * 1024) {
+    throw new Error("The PDF exceeds the maximum allowed size of 10MB.");
+  }
+
+  return Buffer.from(arrayBuffer);
 }

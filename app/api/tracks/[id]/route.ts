@@ -27,9 +27,46 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
 
     const { name, whatsappLink } = parsed.data;
 
-    const updatedTrack = await prisma.learningTrack.update({
-      where: { id: params.id },
-      data: { name, whatsappLink },
+    const existingTrack = await prisma.learningTrack.findUnique({ where: { id: params.id } });
+    if (!existingTrack) {
+      return NextResponse.json({ error: "Learning track not found." }, { status: 404 });
+    }
+
+    if (existingTrack.name !== name) {
+      const nameConflict = await prisma.learningTrack.findFirst({
+        where: { name: { equals: name, mode: "insensitive" }, id: { not: params.id } },
+      });
+      if (nameConflict) {
+        return NextResponse.json({ error: "Another learning track with this name already exists." }, { status: 400 });
+      }
+    }
+
+    const updatedTrack = await prisma.$transaction(async (tx) => {
+      const track = await tx.learningTrack.update({
+        where: { id: params.id },
+        data: { name, whatsappLink },
+      });
+
+      if (existingTrack.name !== name) {
+        await tx.registration.updateMany({
+          where: { techSkill: existingTrack.name },
+          data: { techSkill: name },
+        });
+        await tx.communityManager.updateMany({
+          where: { trackName: existingTrack.name },
+          data: { trackName: name },
+        });
+        await tx.quiz.updateMany({
+          where: { trackName: existingTrack.name },
+          data: { trackName: name },
+        });
+        await tx.quizAttempt.updateMany({
+          where: { trackName: existingTrack.name },
+          data: { trackName: name },
+        });
+      }
+
+      return track;
     });
 
     return NextResponse.json({ message: "Learning track updated successfully", data: updatedTrack });
@@ -44,6 +81,26 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     const access = await getAdminAccess(req);
     if (!access.ok) {
       return accessDeniedResponse(access);
+    }
+
+    const existingTrack = await prisma.learningTrack.findUnique({ where: { id: params.id } });
+    if (!existingTrack) {
+      return NextResponse.json({ error: "Learning track not found." }, { status: 404 });
+    }
+
+    const [regCount, quizCount, managerCount] = await Promise.all([
+      prisma.registration.count({ where: { techSkill: existingTrack.name } }),
+      prisma.quiz.count({ where: { trackName: existingTrack.name } }),
+      prisma.communityManager.count({ where: { trackName: existingTrack.name } }),
+    ]);
+
+    if (regCount > 0 || quizCount > 0 || managerCount > 0) {
+      return NextResponse.json(
+        {
+          error: `Cannot delete track "${existingTrack.name}". It still has ${regCount} participant(s), ${quizCount} quiz(zes), and ${managerCount} manager(s) assigned to it. Reassign or remove them first.`,
+        },
+        { status: 409 }
+      );
     }
 
     await prisma.learningTrack.delete({
