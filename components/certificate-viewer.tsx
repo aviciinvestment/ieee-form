@@ -30,14 +30,7 @@ export function CertificateViewer({
   const candidateName = `${participant.firstName || ""} ${participant.lastName || ""}`.trim() || "Participant Name";
   const trackName = (participant.techSkill || template.defaultTrack || "WEB DEVELOPMENT").toUpperCase();
   const fileBaseName = `${participant.firstName || "Certificate"}_${participant.lastName || ""}_Certificate`.replace(/\s+/g, "_");
-
-  // Dynamic font sizing for long candidate names
   const nameLength = candidateName.length;
-  const nameClass = nameLength > 28
-    ? "text-xs sm:text-base md:text-xl lg:text-2xl"
-    : nameLength > 20
-    ? "text-sm sm:text-lg md:text-2xl lg:text-3xl"
-    : "text-base sm:text-xl md:text-3xl lg:text-[34px]";
 
   async function generateCanvas(): Promise<HTMLCanvasElement | null> {
     if (!certRef.current) return null;
@@ -50,8 +43,12 @@ export function CertificateViewer({
 
     try {
       const html2canvas = (await import("html2canvas")).default;
+      const clientWidth = certRef.current.clientWidth || 800;
+      // High-resolution scale so output is always ~2400px wide regardless of screen size
+      const exportScale = Math.max(2.5, Math.min(4, 2400 / clientWidth));
+
       const canvas = await html2canvas(certRef.current, {
-        scale: 3, // 3x ultra-sharp print quality
+        scale: exportScale,
         useCORS: true,
         allowTaint: false,
         backgroundColor: "#ffffff",
@@ -97,8 +94,8 @@ export function CertificateViewer({
       const { jsPDF } = await import("jspdf");
       const imgData = canvas.toDataURL("image/png");
 
-      const width = canvas.width / 3;
-      const height = canvas.height / 3;
+      const width = canvas.width / 2.5;
+      const height = canvas.height / 2.5;
 
       const pdf = new jsPDF({
         orientation: "landscape",
@@ -115,6 +112,21 @@ export function CertificateViewer({
       setDownloadingPdf(false);
     }
   }
+
+  // Sanitize title to avoid legacy Alpha Capital overlapping titles
+  const cleanTitle = (template.title && !template.title.includes("Achievement"))
+    ? template.title.replace(/\n+/g, " ").trim()
+    : "CERTIFICATE OF COMPLETION";
+
+  // Sanitize body text to avoid legacy 280-char paragraph
+  const cleanBodyText = (
+    template.bodyText &&
+    !template.bodyText.includes("evaluation period") &&
+    !template.bodyText.includes("disciplined mastery") &&
+    template.bodyText.length < 100
+  )
+    ? template.bodyText
+    : "has successfully completed the 30-day tech skill challenge/training in";
 
   return (
     <div className="flex flex-col items-center w-full max-w-4xl mx-auto space-y-4 pb-8 mb-6">
@@ -150,24 +162,43 @@ export function CertificateViewer({
         </div>
       ) : null}
 
-      {/* Official Certificate Container */}
-      <div className="w-full overflow-hidden rounded-xl shadow-2xl border border-border/40 bg-white mb-4">
+      {/* Official Certificate Container with Container Query Scaling */}
+      <div
+        className="w-full overflow-hidden rounded-xl shadow-2xl border border-border/40 bg-white mb-4"
+        style={{ containerType: "inline-size" }}
+      >
         <div
           ref={certRef}
-          className="relative w-full aspect-[1000/710] select-none text-slate-900 overflow-hidden flex flex-col justify-between"
+          className="relative w-full aspect-[1000/707] select-none text-slate-900 overflow-hidden flex flex-col justify-between"
           style={{
+            containerType: "inline-size",
             background: "linear-gradient(135deg, #dcf0fe 0%, #edf6fe 35%, #ffffff 50%, #e8f4fd 70%, #cfe8fc 100%)",
           }}
         >
           {/* Deep Navy Outer Border Frame */}
-          <div className="h-full w-full p-2.5 sm:p-4 md:p-5 flex flex-col justify-between border-[8px] sm:border-[12px] md:border-[18px] border-[#0a235c]">
+          <div
+            className="h-full w-full flex flex-col justify-between"
+            style={{
+              border: "1.3cqw solid #0a235c",
+              padding: "0.6cqw",
+            }}
+          >
             {/* Inner Thin Border Line */}
-            <div className="relative h-full w-full flex flex-col justify-between border border-[#174896]/50 p-2 sm:p-4 md:p-6 bg-gradient-to-br from-[#dff1fe]/60 via-white/95 to-[#dbeefa]/60">
-
-              {/* 1. Header Section: Logos & Title */}
-              <div className="w-full flex flex-col items-center text-center space-y-1 sm:space-y-2">
-                {/* Partner Logos: IEEE on left, Nnamdi Azikiwe University on right */}
-                <div className="flex items-center justify-center gap-4 sm:gap-6 md:gap-8 pt-0.5 sm:pt-1">
+            <div
+              className="relative h-full w-full flex flex-col justify-between"
+              style={{
+                border: "0.15cqw solid rgba(23, 72, 150, 0.45)",
+                padding: "1.2cqw 2cqw 0.8cqw 2cqw",
+                background: "linear-gradient(135deg, rgba(223, 241, 254, 0.6) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(219, 238, 250, 0.6) 100%)",
+              }}
+            >
+              {/* 1. Header Section: Partner Logos & Title */}
+              <div className="w-full flex flex-col items-center text-center">
+                {/* Logos Row: IEEE on Left, NAU on Right */}
+                <div
+                  className="flex items-center justify-center"
+                  style={{ gap: "2.4cqw", paddingTop: "0.1cqw" }}
+                >
                   {/* IEEE Logo */}
                   <div className="flex items-center">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -175,39 +206,73 @@ export function CertificateViewer({
                       src="/logo.svg"
                       alt="IEEE Logo"
                       crossOrigin="anonymous"
-                      className="h-6 sm:h-9 md:h-12 w-auto object-contain"
+                      style={{ height: "4.2cqw", width: "auto" }}
+                      className="object-contain"
                     />
                   </div>
 
                   {/* Vertical Divider */}
-                  <div className="h-6 sm:h-8 md:h-10 w-[1px] bg-slate-300" />
+                  <div
+                    style={{
+                      height: "3.2cqw",
+                      width: "0.12cqw",
+                      backgroundColor: "#cbd5e1",
+                    }}
+                  />
 
                   {/* Nnamdi Azikiwe University Logo & Text */}
-                  <div className="flex items-center gap-1.5 sm:gap-2.5">
+                  <div
+                    className="flex items-center"
+                    style={{ gap: "0.9cqw" }}
+                  >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/download.png"
                       alt="NAU Logo"
                       crossOrigin="anonymous"
-                      className="h-6 sm:h-9 md:h-12 w-auto object-contain"
+                      style={{ height: "4.2cqw", width: "auto" }}
+                      className="object-contain"
                     />
-                    <div className="flex flex-col text-left leading-tight">
-                      <span className="text-[10px] sm:text-xs md:text-sm font-bold text-[#0a235c] tracking-tight">
+                    <div
+                      className="flex flex-col text-left"
+                      style={{ lineHeight: 1.15 }}
+                    >
+                      <span
+                        className="font-bold text-[#0a235c] tracking-tight"
+                        style={{ fontSize: "1.2cqw" }}
+                      >
                         Nnamdi Azikiwe
                       </span>
-                      <span className="text-[9px] sm:text-[11px] md:text-xs font-semibold text-[#0a235c]/90">
+                      <span
+                        className="font-semibold text-[#0a235c]/90"
+                        style={{ fontSize: "1.0cqw" }}
+                      >
                         University
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Main Heading */}
-                <div className="text-center pt-1 sm:pt-2 space-y-0.5 sm:space-y-1">
-                  <h1 className="text-base sm:text-2xl md:text-3xl lg:text-[34px] font-black tracking-tight text-[#071739] uppercase drop-shadow-sm leading-tight">
-                    {template.title || "CERTIFICATE OF COMPLETION"}
+                {/* Main Heading: CERTIFICATE OF COMPLETION (increased top margin on desktop screen) */}
+                <div className="text-center w-full">
+                  <h1
+                    className="font-black text-[#071739] uppercase drop-shadow-sm text-center whitespace-nowrap mt-[2.2cqw] sm:mt-[3.8cqw] md:mt-[4.8cqw]"
+                    style={{
+                      fontSize: "clamp(15px, 3.85cqw, 39px)",
+                      lineHeight: 1.25,
+                      letterSpacing: "0.02em",
+                      marginBottom: "0.3cqw",
+                    }}
+                  >
+                    {cleanTitle}
                   </h1>
-                  <p className="text-[9.5px] sm:text-xs md:text-sm font-medium text-slate-700 tracking-normal">
+                  <p
+                    className="font-medium text-slate-700 tracking-normal text-center mt-[0.3cqw] mb-[0.8cqw] md:mb-[1.2cqw]"
+                    style={{
+                      fontSize: "1.6cqw",
+                      lineHeight: 1.2,
+                    }}
+                  >
                     {template.subtitle || "This is to certify that"}
                   </p>
                 </div>
@@ -215,66 +280,156 @@ export function CertificateViewer({
 
               {/* 2. Middle Dark Blue Gradient Banner */}
               <div
-                className="w-full my-auto py-2.5 sm:py-4 md:py-5 px-3 sm:px-6 md:px-8 text-center text-white shadow-md relative"
+                className="w-full text-center text-white shadow-md relative"
                 style={{
                   background: "linear-gradient(90deg, #071f4e 0%, #0d3b82 45%, #18569c 100%)",
+                  padding: "1.2cqw 2cqw",
+                  margin: "auto 0",
                 }}
               >
-                {/* Candidate Name Section */}
-                <div className="w-full max-w-[82%] mx-auto pb-0.5 sm:pb-1 mb-1 sm:mb-2 relative">
-                  <div className="min-h-[20px] sm:min-h-[32px] md:min-h-[40px] flex items-end justify-center pb-0.5">
-                    <span className={`${nameClass} font-bold tracking-wide text-white drop-shadow-sm`}>
+                {/* Candidate Name Section with Increased Font Size and Dedicated Padding */}
+                <div
+                  className="w-[78%] mx-auto flex flex-col items-center"
+                  style={{ marginBottom: "0.6cqw" }}
+                >
+                  <div
+                    className="w-full flex items-end justify-center"
+                    style={{
+                      minHeight: "4.2cqw",
+                      paddingBottom: "0.6cqw", // Clear separation above line so descenders never cut across
+                    }}
+                  >
+                    <span
+                      className="font-bold tracking-wide text-white drop-shadow-sm text-center"
+                      style={{
+                        fontSize:
+                          nameLength > 28
+                            ? "clamp(11px, 2.7cqw, 28px)"
+                            : nameLength > 20
+                            ? "clamp(13px, 3.3cqw, 33px)"
+                            : "clamp(15px, 4.0cqw, 40px)", // Increased font size for desktop and mobile
+                        lineHeight: 1.2,
+                      }}
+                    >
                       {candidateName}
                     </span>
                   </div>
-                  {/* Underline for candidate name */}
-                  <div className="w-full h-[1px] sm:h-[1.5px] bg-white/70" />
+                  {/* Clean white horizontal line separated from candidate text */}
+                  <div
+                    className="w-full bg-white/85"
+                    style={{ height: "0.15cqw" }}
+                  />
                 </div>
 
-                {/* Description Text */}
-                <p className="text-[8px] sm:text-[11px] md:text-xs lg:text-sm font-normal text-white/95 max-w-[94%] mx-auto leading-tight my-1 sm:my-1.5">
-                  {template.bodyText || "has successfully completed the 30-day tech skill challenge/training in"}
-                </p>
+                {/* Exact Flyer Challenge Text in Two Clean Lines */}
+                <div
+                  className="font-normal text-white/95 max-w-[94%] mx-auto text-center"
+                  style={{
+                    fontSize: "1.4cqw",
+                    lineHeight: 1.3,
+                    marginTop: "0.5cqw",
+                    marginBottom: "0.6cqw",
+                  }}
+                >
+                  <p>has successfully completed the 30-day tech skill</p>
+                  <p>challenge/training in</p>
+                </div>
 
                 {/* Project Track (Automatically Placed for each individual client) */}
-                <h2 className="text-xs sm:text-base md:text-xl lg:text-2xl font-black uppercase tracking-wider text-white drop-shadow-md pt-0.5">
+                <h2
+                  className="font-black uppercase tracking-wider text-white drop-shadow-md text-center"
+                  style={{
+                    fontSize: "2.35cqw",
+                    lineHeight: 1.2,
+                    letterSpacing: "0.06em",
+                  }}
+                >
                   {trackName}
                 </h2>
               </div>
 
-              {/* 3. Footer Section: Signatories & Medal Rosette Badge */}
-              <div className="w-full flex items-end justify-between px-2 sm:px-6 md:px-10 pb-0.5 sm:pb-1 pt-1 sm:pt-2">
+              {/* 3. Footer Section: Signatories & Central Medal Rosette Badge */}
+              <div
+                className="w-full flex items-end justify-between"
+                style={{
+                  paddingLeft: "2cqw",
+                  paddingRight: "2cqw",
+                  paddingTop: "0.4cqw",
+                  paddingBottom: "0cqw",
+                }}
+              >
                 {/* Left Signature Column */}
-                <div className="flex-1 flex flex-col items-center justify-end text-center max-w-[38%]">
-                  <div className="h-6 sm:h-9 md:h-12 w-full flex items-end justify-center pb-1">
+                <div
+                  className="flex-1 flex flex-col items-center justify-end text-center"
+                  style={{ maxWidth: "38%" }}
+                >
+                  <div
+                    className="w-full flex items-end justify-center"
+                    style={{
+                      height: "4.2cqw",
+                      paddingBottom: "0.3cqw",
+                    }}
+                  >
                     {template.signatureUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={template.signatureUrl}
                         alt="Signature"
                         crossOrigin="anonymous"
-                        className="max-h-6 sm:max-h-9 md:max-h-12 max-w-[100px] sm:max-w-[140px] md:max-w-[170px] object-contain"
+                        style={{
+                          maxHeight: "4.2cqw",
+                          maxWidth: "16cqw",
+                        }}
+                        className="object-contain"
                       />
                     ) : null}
                   </div>
-                  <div className="w-24 sm:w-36 md:w-48 h-[1px] sm:h-[1.5px] bg-slate-800" />
+                  <div
+                    className="bg-slate-800"
+                    style={{
+                      width: "18cqw",
+                      height: "0.15cqw",
+                    }}
+                  />
                   {template.signatoryName ? (
-                    <p className="text-[7.5px] sm:text-[10px] md:text-xs font-bold text-slate-900 mt-1 leading-tight">
+                    <p
+                      className="font-bold text-slate-900 leading-tight"
+                      style={{
+                        fontSize: "1.15cqw",
+                        marginTop: "0.35cqw",
+                      }}
+                    >
                       {template.signatoryName}
                     </p>
                   ) : null}
                   {template.signatoryTitle ? (
-                    <p className="text-[6.5px] sm:text-[9px] md:text-[11px] font-medium text-slate-600 leading-tight">
+                    <p
+                      className="font-medium text-slate-600 leading-tight"
+                      style={{
+                        fontSize: "0.95cqw",
+                        marginTop: "0.15cqw",
+                      }}
+                    >
                       {template.signatoryTitle}
                     </p>
                   ) : null}
                 </div>
 
                 {/* Central Rosette Medal Ribbon Badge */}
-                <div className="flex flex-col items-center justify-center shrink-0 mx-2 sm:mx-4">
+                <div
+                  className="flex flex-col items-center justify-center shrink-0"
+                  style={{
+                    marginLeft: "1.5cqw",
+                    marginRight: "1.5cqw",
+                  }}
+                >
                   <svg
                     viewBox="0 0 100 120"
-                    className="w-8 h-10 sm:w-11 sm:h-13 md:w-14 md:h-16 drop-shadow-md"
+                    style={{
+                      width: "5.8cqw",
+                      height: "7.4cqw",
+                    }}
+                    className="drop-shadow-md"
                   >
                     {/* Ribbon Tails */}
                     <g>
@@ -296,26 +451,57 @@ export function CertificateViewer({
                 </div>
 
                 {/* Right Signature Column */}
-                <div className="flex-1 flex flex-col items-center justify-end text-center max-w-[38%]">
-                  <div className="h-6 sm:h-9 md:h-12 w-full flex items-end justify-center pb-1">
+                <div
+                  className="flex-1 flex flex-col items-center justify-end text-center"
+                  style={{ maxWidth: "38%" }}
+                >
+                  <div
+                    className="w-full flex items-end justify-center"
+                    style={{
+                      height: "4.2cqw",
+                      paddingBottom: "0.3cqw",
+                    }}
+                  >
                     {template.signatory2SignatureUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={template.signatory2SignatureUrl}
                         alt="Signature 2"
                         crossOrigin="anonymous"
-                        className="max-h-6 sm:max-h-9 md:max-h-12 max-w-[100px] sm:max-w-[140px] md:max-w-[170px] object-contain"
+                        style={{
+                          maxHeight: "4.2cqw",
+                          maxWidth: "16cqw",
+                        }}
+                        className="object-contain"
                       />
                     ) : null}
                   </div>
-                  <div className="w-24 sm:w-36 md:w-48 h-[1px] sm:h-[1.5px] bg-slate-800" />
+                  <div
+                    className="bg-slate-800"
+                    style={{
+                      width: "18cqw",
+                      height: "0.15cqw",
+                    }}
+                  />
                   {template.signatory2Name ? (
-                    <p className="text-[7.5px] sm:text-[10px] md:text-xs font-bold text-slate-900 mt-1 leading-tight">
+                    <p
+                      className="font-bold text-slate-900 leading-tight"
+                      style={{
+                        fontSize: "1.15cqw",
+                        marginTop: "0.35cqw",
+                      }}
+                    >
                       {template.signatory2Name}
                     </p>
                   ) : null}
                   {template.signatory2Title ? (
-                    <p className="text-[6.5px] sm:text-[9px] md:text-[11px] font-medium text-slate-600 leading-tight">
+                    <p
+                      className="font-medium text-slate-600 leading-tight"
+                      style={{
+                        fontSize: "0.95cqw",
+                        marginTop: "0.15cqw",
+                      }}
+                    >
                       {template.signatory2Title}
                     </p>
                   ) : null}

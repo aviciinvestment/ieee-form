@@ -19,12 +19,23 @@ export async function GET() {
     }
 
     try {
-      const parsed = JSON.parse(setting.value) as CertificateTemplate;
+      const parsed = JSON.parse(setting.value) as Partial<CertificateTemplate>;
+      const merged: CertificateTemplate = {
+        ...DEFAULT_CERTIFICATE_TEMPLATE,
+        ...parsed,
+      };
+      if (
+        !merged.bodyText ||
+        merged.bodyText.includes("evaluation period") ||
+        merged.bodyText.includes("disciplined mastery")
+      ) {
+        merged.bodyText = DEFAULT_CERTIFICATE_TEMPLATE.bodyText;
+      }
+      if (!merged.title || merged.title.includes("Achievement")) {
+        merged.title = DEFAULT_CERTIFICATE_TEMPLATE.title;
+      }
       return NextResponse.json({
-        data: {
-          ...DEFAULT_CERTIFICATE_TEMPLATE,
-          ...parsed,
-        },
+        data: merged,
       });
     } catch {
       return NextResponse.json({ data: DEFAULT_CERTIFICATE_TEMPLATE });

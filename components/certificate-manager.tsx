@@ -79,9 +79,16 @@ export function CertificateManager({ email }: Props) {
       const res = await fetch("/api/certificate/template");
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.data) {
+        const d = data.data;
+        if (!d.bodyText || d.bodyText.includes("evaluation period") || d.bodyText.includes("disciplined mastery")) {
+          d.bodyText = DEFAULT_CERTIFICATE_TEMPLATE.bodyText;
+        }
+        if (!d.title || d.title.includes("Achievement")) {
+          d.title = DEFAULT_CERTIFICATE_TEMPLATE.title;
+        }
         setTemplate({
           ...DEFAULT_CERTIFICATE_TEMPLATE,
-          ...data.data,
+          ...d,
         });
       }
     } catch {

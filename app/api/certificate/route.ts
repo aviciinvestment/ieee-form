@@ -48,6 +48,17 @@ export async function GET(req: Request) {
       /* fallback */
     }
 
+    if (
+      !template.bodyText ||
+      template.bodyText.includes("evaluation period") ||
+      template.bodyText.includes("disciplined mastery")
+    ) {
+      template.bodyText = DEFAULT_CERTIFICATE_TEMPLATE.bodyText;
+    }
+    if (!template.title || template.title.includes("Achievement")) {
+      template.title = DEFAULT_CERTIFICATE_TEMPLATE.title;
+    }
+
     // Template maintains official flier bodyText, while participant.techSkill is placed automatically into the project track section.
 
     return NextResponse.json({
