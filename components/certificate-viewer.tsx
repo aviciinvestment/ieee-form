@@ -188,7 +188,7 @@ export function CertificateViewer({
               className="relative h-full w-full flex flex-col justify-between"
               style={{
                 border: "0.15cqw solid rgba(23, 72, 150, 0.45)",
-                padding: "1.2cqw 2cqw 0.8cqw 2cqw",
+                padding: "clamp(6px, 1.2cqw, 14px) clamp(8px, 2cqw, 20px) clamp(6px, 0.8cqw, 12px) clamp(8px, 2cqw, 20px)",
                 background: "linear-gradient(135deg, rgba(223, 241, 254, 0.6) 0%, rgba(255, 255, 255, 0.95) 50%, rgba(219, 238, 250, 0.6) 100%)",
               }}
             >
@@ -197,7 +197,7 @@ export function CertificateViewer({
                 {/* Logos Row: IEEE on Left, NAU on Right */}
                 <div
                   className="flex items-center justify-center"
-                  style={{ gap: "2.4cqw", paddingTop: "0.1cqw" }}
+                  style={{ gap: "clamp(8px, 2.4cqw, 24px)", paddingTop: "clamp(1px, 0.2cqw, 4px)" }}
                 >
                   {/* IEEE Logo */}
                   <div className="flex items-center">
@@ -206,7 +206,7 @@ export function CertificateViewer({
                       src="/logo.svg"
                       alt="IEEE Logo"
                       crossOrigin="anonymous"
-                      style={{ height: "4.2cqw", width: "auto" }}
+                      style={{ height: "clamp(24px, 4.2cqw, 42px)", width: "auto" }}
                       className="object-contain"
                     />
                   </div>
@@ -214,8 +214,8 @@ export function CertificateViewer({
                   {/* Vertical Divider */}
                   <div
                     style={{
-                      height: "3.2cqw",
-                      width: "0.12cqw",
+                      height: "clamp(20px, 3.2cqw, 32px)",
+                      width: "clamp(1px, 0.12cqw, 1.5px)",
                       backgroundColor: "#cbd5e1",
                     }}
                   />
@@ -223,14 +223,14 @@ export function CertificateViewer({
                   {/* Nnamdi Azikiwe University Logo & Text */}
                   <div
                     className="flex items-center"
-                    style={{ gap: "0.9cqw" }}
+                    style={{ gap: "clamp(4px, 0.9cqw, 9px)" }}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/download.png"
                       alt="NAU Logo"
                       crossOrigin="anonymous"
-                      style={{ height: "4.2cqw", width: "auto" }}
+                      style={{ height: "clamp(24px, 4.2cqw, 42px)", width: "auto" }}
                       className="object-contain"
                     />
                     <div
@@ -239,13 +239,13 @@ export function CertificateViewer({
                     >
                       <span
                         className="font-bold text-[#0a235c] tracking-tight"
-                        style={{ fontSize: "1.2cqw" }}
+                        style={{ fontSize: "clamp(9.5px, 1.2cqw, 13px)" }}
                       >
                         Nnamdi Azikiwe
                       </span>
                       <span
                         className="font-semibold text-[#0a235c]/90"
-                        style={{ fontSize: "1.0cqw" }}
+                        style={{ fontSize: "clamp(8px, 1.0cqw, 11px)" }}
                       >
                         University
                       </span>
@@ -256,20 +256,20 @@ export function CertificateViewer({
                 {/* Main Heading: CERTIFICATE OF COMPLETION (increased top margin on desktop screen) */}
                 <div className="text-center w-full">
                   <h1
-                    className="font-black text-[#071739] uppercase drop-shadow-sm text-center whitespace-nowrap mt-[2.2cqw] sm:mt-[3.8cqw] md:mt-[4.8cqw]"
+                    className="font-black text-[#071739] uppercase drop-shadow-sm text-center whitespace-nowrap mt-[1.6cqw] sm:mt-[3.8cqw] md:mt-[4.8cqw]"
                     style={{
-                      fontSize: "clamp(15px, 3.85cqw, 39px)",
+                      fontSize: "clamp(17.5px, 3.85cqw, 39px)",
                       lineHeight: 1.25,
                       letterSpacing: "0.02em",
-                      marginBottom: "0.3cqw",
+                      marginBottom: "clamp(2px, 0.4cqw, 6px)",
                     }}
                   >
                     {cleanTitle}
                   </h1>
                   <p
-                    className="font-medium text-slate-700 tracking-normal text-center mt-[0.3cqw] mb-[0.8cqw] md:mb-[1.2cqw]"
+                    className="font-medium text-slate-700 tracking-normal text-center mt-[0.3cqw] mb-[1.2cqw] sm:mb-[1.0cqw] md:mb-[1.2cqw]"
                     style={{
-                      fontSize: "1.6cqw",
+                      fontSize: "clamp(11px, 1.6cqw, 17px)",
                       lineHeight: 1.2,
                     }}
                   >
@@ -352,10 +352,10 @@ export function CertificateViewer({
               <div
                 className="w-full flex items-end justify-between"
                 style={{
-                  paddingLeft: "2cqw",
-                  paddingRight: "2cqw",
-                  paddingTop: "0.4cqw",
-                  paddingBottom: "0cqw",
+                  paddingLeft: "clamp(8px, 2cqw, 20px)",
+                  paddingRight: "clamp(8px, 2cqw, 20px)",
+                  paddingTop: "clamp(3px, 0.4cqw, 6px)",
+                  paddingBottom: "clamp(4px, 0.6cqw, 8px)",
                 }}
               >
                 {/* Left Signature Column */}
@@ -366,8 +366,8 @@ export function CertificateViewer({
                   <div
                     className="w-full flex items-end justify-center"
                     style={{
-                      height: "4.2cqw",
-                      paddingBottom: "0.3cqw",
+                      height: "clamp(24px, 4.2cqw, 42px)",
+                      paddingBottom: "clamp(2px, 0.3cqw, 4px)",
                     }}
                   >
                     {template.signatureUrl ? (
@@ -377,8 +377,8 @@ export function CertificateViewer({
                         alt="Signature"
                         crossOrigin="anonymous"
                         style={{
-                          maxHeight: "4.2cqw",
-                          maxWidth: "16cqw",
+                          maxHeight: "clamp(24px, 4.2cqw, 42px)",
+                          maxWidth: "clamp(75px, 16cqw, 160px)",
                         }}
                         className="object-contain"
                       />
@@ -387,16 +387,16 @@ export function CertificateViewer({
                   <div
                     className="bg-slate-800"
                     style={{
-                      width: "18cqw",
-                      height: "0.15cqw",
+                      width: "clamp(80px, 18cqw, 180px)",
+                      height: "clamp(1.2px, 0.15cqw, 2px)",
                     }}
                   />
                   {template.signatoryName ? (
                     <p
                       className="font-bold text-slate-900 leading-tight"
                       style={{
-                        fontSize: "1.15cqw",
-                        marginTop: "0.35cqw",
+                        fontSize: "clamp(10px, 1.2cqw, 14px)",
+                        marginTop: "clamp(3px, 0.35cqw, 5px)",
                       }}
                     >
                       {template.signatoryName}
@@ -406,8 +406,8 @@ export function CertificateViewer({
                     <p
                       className="font-medium text-slate-600 leading-tight"
                       style={{
-                        fontSize: "0.95cqw",
-                        marginTop: "0.15cqw",
+                        fontSize: "clamp(8.5px, 0.95cqw, 12px)",
+                        marginTop: "clamp(2px, 0.15cqw, 3px)",
                       }}
                     >
                       {template.signatoryTitle}
@@ -419,15 +419,15 @@ export function CertificateViewer({
                 <div
                   className="flex flex-col items-center justify-center shrink-0"
                   style={{
-                    marginLeft: "1.5cqw",
-                    marginRight: "1.5cqw",
+                    marginLeft: "clamp(6px, 1.5cqw, 15px)",
+                    marginRight: "clamp(6px, 1.5cqw, 15px)",
                   }}
                 >
                   <svg
                     viewBox="0 0 100 120"
                     style={{
-                      width: "5.8cqw",
-                      height: "7.4cqw",
+                      width: "clamp(32px, 5.8cqw, 60px)",
+                      height: "clamp(40px, 7.4cqw, 76px)",
                     }}
                     className="drop-shadow-md"
                   >
@@ -458,8 +458,8 @@ export function CertificateViewer({
                   <div
                     className="w-full flex items-end justify-center"
                     style={{
-                      height: "4.2cqw",
-                      paddingBottom: "0.3cqw",
+                      height: "clamp(24px, 4.2cqw, 42px)",
+                      paddingBottom: "clamp(2px, 0.3cqw, 4px)",
                     }}
                   >
                     {template.signatory2SignatureUrl ? (
@@ -469,8 +469,8 @@ export function CertificateViewer({
                         alt="Signature 2"
                         crossOrigin="anonymous"
                         style={{
-                          maxHeight: "4.2cqw",
-                          maxWidth: "16cqw",
+                          maxHeight: "clamp(24px, 4.2cqw, 42px)",
+                          maxWidth: "clamp(75px, 16cqw, 160px)",
                         }}
                         className="object-contain"
                       />
@@ -479,16 +479,16 @@ export function CertificateViewer({
                   <div
                     className="bg-slate-800"
                     style={{
-                      width: "18cqw",
-                      height: "0.15cqw",
+                      width: "clamp(80px, 18cqw, 180px)",
+                      height: "clamp(1.2px, 0.15cqw, 2px)",
                     }}
                   />
                   {template.signatory2Name ? (
                     <p
                       className="font-bold text-slate-900 leading-tight"
                       style={{
-                        fontSize: "1.15cqw",
-                        marginTop: "0.35cqw",
+                        fontSize: "clamp(10px, 1.2cqw, 14px)",
+                        marginTop: "clamp(3px, 0.35cqw, 5px)",
                       }}
                     >
                       {template.signatory2Name}
@@ -498,8 +498,8 @@ export function CertificateViewer({
                     <p
                       className="font-medium text-slate-600 leading-tight"
                       style={{
-                        fontSize: "0.95cqw",
-                        marginTop: "0.15cqw",
+                        fontSize: "clamp(8.5px, 0.95cqw, 12px)",
+                        marginTop: "clamp(2px, 0.15cqw, 3px)",
                       }}
                     >
                       {template.signatory2Title}
