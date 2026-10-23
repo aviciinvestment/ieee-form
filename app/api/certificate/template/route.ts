@@ -24,6 +24,9 @@ export async function GET() {
         ...DEFAULT_CERTIFICATE_TEMPLATE,
         ...parsed,
       };
+      if (merged.logoUrl && merged.logoUrl.startsWith("data:")) {
+        merged.logoUrl = "";
+      }
       if (
         !merged.bodyText ||
         merged.bodyText.includes("evaluation period") ||
@@ -72,7 +75,9 @@ export async function PUT(req: Request) {
 
     const parsed = certificateTemplateSchema.safeParse(body);
     if (!parsed.success) {
-      const message = parsed.error.issues[0]?.message || "Validation failed.";
+      const issue = parsed.error.issues[0];
+      const fieldPath = issue?.path?.length ? `[${issue.path.join(".")}] ` : "";
+      const message = `${fieldPath}${issue?.message || "Validation failed."}`;
       return NextResponse.json({ error: message }, { status: 400 });
     }
 
@@ -90,6 +95,14 @@ export async function PUT(req: Request) {
       }
     }
 
+    const cleanLogoUrl = validData.logoUrl?.startsWith("data:")
+      ? ""
+      : validData.logoUrl !== undefined
+      ? validData.logoUrl
+      : current.logoUrl?.startsWith("data:")
+      ? ""
+      : current.logoUrl;
+
     const updatedTemplate: CertificateTemplate = {
       title: validData.title !== undefined ? validData.title : current.title,
       subtitle: validData.subtitle !== undefined ? validData.subtitle : current.subtitle,
@@ -101,7 +114,7 @@ export async function PUT(req: Request) {
       signatory2Name: validData.signatory2Name !== undefined ? validData.signatory2Name : current.signatory2Name,
       signatory2Title: validData.signatory2Title !== undefined ? validData.signatory2Title : current.signatory2Title,
       signatory2SignatureUrl: validData.signatory2SignatureUrl !== undefined ? validData.signatory2SignatureUrl : current.signatory2SignatureUrl,
-      logoUrl: validData.logoUrl !== undefined ? validData.logoUrl : current.logoUrl,
+      logoUrl: cleanLogoUrl,
       logoName: validData.logoName !== undefined ? validData.logoName : current.logoName,
       badgeText: validData.badgeText !== undefined ? validData.badgeText : current.badgeText,
       dateText: validData.dateText !== undefined ? validData.dateText : current.dateText,

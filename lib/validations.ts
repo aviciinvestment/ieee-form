@@ -81,7 +81,7 @@ export const certificateTemplateSchema = z.object({
   signatory2Name: z.string().trim().max(100).optional(),
   signatory2Title: z.string().trim().max(100).optional(),
   signatory2SignatureUrl: z.string().trim().max(3000000).optional(),
-  logoUrl: z.string().trim().max(2000).optional(),
+  logoUrl: z.string().trim().max(3000000).optional(),
   logoName: z.string().trim().max(100).optional(),
   badgeText: z.string().trim().max(100).optional(),
   dateText: z.string().trim().max(100).optional(),

@@ -48,6 +48,10 @@ export async function GET(req: Request) {
       /* fallback */
     }
 
+    if (template.logoUrl && template.logoUrl.startsWith("data:")) {
+      template.logoUrl = "";
+    }
+
     if (
       !template.bodyText ||
       template.bodyText.includes("evaluation period") ||

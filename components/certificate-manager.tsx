@@ -80,6 +80,9 @@ export function CertificateManager({ email }: Props) {
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.data) {
         const d = data.data;
+        if (d.logoUrl && d.logoUrl.startsWith("data:")) {
+          d.logoUrl = "";
+        }
         if (!d.bodyText || d.bodyText.includes("evaluation period") || d.bodyText.includes("disciplined mastery")) {
           d.bodyText = DEFAULT_CERTIFICATE_TEMPLATE.bodyText;
         }
@@ -106,13 +109,17 @@ export function CertificateManager({ email }: Props) {
     setSaving(true);
     try {
       const headers = await getAuthHeaders();
+      const payload = {
+        ...template,
+        logoUrl: template.logoUrl?.startsWith("data:") ? "" : template.logoUrl,
+      };
       const res = await fetch("/api/certificate/template", {
         method: "PUT",
         headers: {
           ...headers,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(template),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
