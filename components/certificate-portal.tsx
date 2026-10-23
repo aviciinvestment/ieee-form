@@ -66,6 +66,14 @@ export function CertificatePortal() {
     }
   }, [email, loadCertificate]);
 
+  async function handleSignOut() {
+    const { signOutFirebase } = await import("@/lib/firebase");
+    await signOutFirebase();
+    setEmail(null);
+    setResult(null);
+    setError("");
+  }
+
   return (
     <div className="w-full max-w-5xl mx-auto px-4 py-10 pb-28 space-y-8">
       {/* Top Header */}
@@ -136,8 +144,8 @@ export function CertificatePortal() {
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-between items-center">
-            <Button variant="outline" size="sm" onClick={() => setEmail(null)}>
-              Change email
+            <Button variant="outline" size="sm" onClick={handleSignOut}>
+              Sign out / Change email
             </Button>
             <Button size="sm" onClick={() => loadCertificate(email)}>
               <RefreshCw className="mr-1.5 h-3.5 w-3.5" /> Try again
@@ -170,7 +178,7 @@ export function CertificatePortal() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setEmail(null)}
+                onClick={handleSignOut}
                 className="text-xs text-muted-foreground hover:text-foreground"
               >
                 Sign out
@@ -217,7 +225,7 @@ export function CertificatePortal() {
             ) : null}
 
             <div className="flex items-center justify-between gap-3 pt-2">
-              <Button variant="outline" size="sm" onClick={() => setEmail(null)}>
+              <Button variant="outline" size="sm" onClick={handleSignOut}>
                 Sign out
               </Button>
               <Button size="sm" onClick={() => loadCertificate(email)}>

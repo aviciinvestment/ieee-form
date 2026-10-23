@@ -14,32 +14,46 @@ export type Registration = {
 };
 
 export type CertificateTemplate = {
-  logoUrl?: string;
-  logoName: string;
-  badgeText: string;
+  // Main Flier Texts
   title: string;
   subtitle: string;
   bodyText: string;
-  dateText: string;
+  defaultTrack?: string;
+
+  // Primary Signatory (Admin Configured)
   signatoryName: string;
   signatoryTitle: string;
   signatureUrl?: string;
+
+  // Optional Secondary Signatory
+  signatory2Name?: string;
+  signatory2Title?: string;
+  signatory2SignatureUrl?: string;
+
+  // Legacy fields kept optional for backwards compatibility
+  logoUrl?: string;
+  logoName?: string;
+  badgeText?: string;
+  dateText?: string;
 };
 
-export const MAX_CERTIFICATE_BODY_LENGTH = 280;
+export const MAX_CERTIFICATE_BODY_LENGTH = 500;
 
 export const DEFAULT_CERTIFICATE_TEMPLATE: CertificateTemplate = {
-  logoUrl: "",
-  logoName: "ALPHA CAPITAL",
-  badgeText: "PHASE 1",
-  title: "Certificate\nOf Achievement",
-  subtitle: "Proudly presented to",
-  bodyText:
-    "The participant has successfully completed the evaluation period, demonstrating disciplined mastery, technical competence, and dedication to excellence throughout the challenge.",
-  dateText: "26 Aug 2025",
-  signatoryName: "George Kohler",
-  signatoryTitle: "Managing Director",
+  title: "CERTIFICATE OF COMPLETION",
+  subtitle: "This is to certify that",
+  bodyText: "has successfully completed the 30-day tech skill challenge/training in",
+  defaultTrack: "WEB DEVELOPMENT",
+  signatoryName: "Engr. Patrick Okafor",
+  signatoryTitle: "IEEE Branch Counselor",
   signatureUrl: "",
+  signatory2Name: "Dr. Chioma Nnamdi",
+  signatory2Title: "Faculty Coordinator",
+  signatory2SignatureUrl: "",
+  logoUrl: "",
+  logoName: "IEEE & NAU",
+  badgeText: "",
+  dateText: "",
 };
 
 export type RegistrationSortField = (typeof REGISTRATION_SORT_FIELDS)[number];

@@ -28,17 +28,6 @@ const QuizManager = dynamic(
     ),
   }
 );
-
-const ManagerCertificateEditor = dynamic(
-  () => import("@/components/manager-certificate-editor").then((m) => m.ManagerCertificateEditor),
-  {
-    loading: () => (
-      <div className="flex h-32 items-center justify-center rounded-lg border border-border/50 bg-card p-4">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    ),
-  }
-);
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getAuthHeaders } from "@/lib/firebase";
 
@@ -140,7 +129,6 @@ export function CommunityDashboard() {
               lockedTrack={trackName}
               emptyMessage="No participants match your filters in your track yet."
             />
-            <ManagerCertificateEditor email={portalEmail} trackName={trackName} />
             <QuizManager email={portalEmail} trackOptions={[trackName]} lockedTrack={trackName} />
           </>
         ) : null}

@@ -65,17 +65,33 @@ export function PortalLoginForm({ requiredRole, redirectPath }: Props) {
         onSessionLost={() => setVerifiedEmail(null)}
       />
       {status.text ? (
-        <p
-          className={`text-sm flex items-start gap-2 ${
-            status.kind === "success"
-              ? "text-green-700 dark:text-green-400"
-              : status.kind === "error"
-                ? "text-red-600 dark:text-red-400"
-                : "text-muted-foreground"
-          }`}
-        >
-          {status.text}
-        </p>
+        <div className="space-y-2">
+          <p
+            className={`text-sm flex items-start gap-2 ${
+              status.kind === "success"
+                ? "text-green-700 dark:text-green-400"
+                : status.kind === "error"
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-muted-foreground"
+            }`}
+          >
+            {status.text}
+          </p>
+          {status.kind === "error" ? (
+            <button
+              type="button"
+              onClick={async () => {
+                const { signOutFirebase } = await import("@/lib/firebase");
+                await signOutFirebase();
+                setVerifiedEmail(null);
+                setStatus({ text: "", kind: "info" });
+              }}
+              className="text-xs text-primary underline underline-offset-4 hover:opacity-80 transition-opacity"
+            >
+              Sign out and try another Gmail account →
+            </button>
+          ) : null}
+        </div>
       ) : null}
       {checking ? <p className="text-sm text-muted-foreground">&hellip; verifying your access</p> : null}
     </div>

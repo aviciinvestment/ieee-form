@@ -29,8 +29,17 @@ export function DashboardShell({ title, subtitle, onLogout, children }: Props) {
           >
             <Menu className="h-5 w-5" />
           </Button>
-          <span className="text-xs font-medium tracking-wide text-muted-foreground">IEEE Portal</span>
-          <div className="w-10" />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLogout}
+              className="h-8 px-2.5 text-xs flex items-center gap-1.5 border-border/70 text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
+            </Button>
+          </div>
         </div>
         {menuOpen ? (
           <>

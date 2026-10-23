@@ -59,19 +59,9 @@ export function usePortalSession(requiredEmail?: string) {
   }, [fb, loadError, requiredEmail, router]);
 
   async function logout() {
-    if (fb?.auth) {
-      try {
-        await signOut(fb.auth);
-      } catch {
-        /* noop */
-      }
-    }
-    try {
-      window.localStorage.removeItem("portal_email");
-      window.localStorage.removeItem("portal_role");
-    } catch {
-      /* noop */
-    }
+    const { signOutFirebase } = await import("@/lib/firebase");
+    await signOutFirebase();
+    setState("denied");
     window.location.href = "/login";
   }
 

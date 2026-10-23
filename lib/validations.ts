@@ -71,20 +71,20 @@ export const trackSchema = z.object({
 });
 
 export const certificateTemplateSchema = z.object({
+  title: z.string().trim().min(1, "Title is required.").max(200).optional(),
+  subtitle: z.string().trim().min(1, "Subtitle is required.").max(200).optional(),
+  bodyText: z.string().trim().max(500, "Description text is too long.").optional(),
+  defaultTrack: z.string().trim().max(100).optional(),
+  signatoryName: z.string().trim().max(100).optional(),
+  signatoryTitle: z.string().trim().max(100).optional(),
+  signatureUrl: z.string().trim().max(3000000).optional(), // Allows high-res PNG data URLs
+  signatory2Name: z.string().trim().max(100).optional(),
+  signatory2Title: z.string().trim().max(100).optional(),
+  signatory2SignatureUrl: z.string().trim().max(3000000).optional(),
   logoUrl: z.string().trim().max(2000).optional(),
-  logoName: z.string().trim().min(1, "Logo name is required.").max(100).optional(),
-  badgeText: z.string().trim().min(1, "Badge text is required.").max(100).optional(),
-  title: z.string().trim().min(1, "Title is required.").max(100).optional(),
-  subtitle: z.string().trim().min(1, "Subtitle is required.").max(150).optional(),
-  bodyText: z
-    .string()
-    .trim()
-    .max(280, "Certificate description cannot exceed 280 characters to ensure it fits neatly on all devices.")
-    .optional(),
+  logoName: z.string().trim().max(100).optional(),
+  badgeText: z.string().trim().max(100).optional(),
   dateText: z.string().trim().max(100).optional(),
-  signatoryName: z.string().trim().min(1, "Signatory name is required.").max(100).optional(),
-  signatoryTitle: z.string().trim().min(1, "Signatory title is required.").max(100).optional(),
-  signatureUrl: z.string().trim().max(2000).optional(),
 });
 
 export const supportLinkSchema = z.object({

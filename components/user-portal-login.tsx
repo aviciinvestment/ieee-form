@@ -100,12 +100,9 @@ export function UserPortalLogin() {
     };
   }, [email]);
 
-  function handleSignOut() {
-    try {
-      window.localStorage.removeItem("participant_email");
-    } catch {
-      /* ignore */
-    }
+  async function handleSignOut() {
+    const { signOutFirebase } = await import("@/lib/firebase");
+    await signOutFirebase();
     setEmail(null);
     setParticipant(null);
     setNotRegistered(false);

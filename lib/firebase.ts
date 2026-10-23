@@ -92,3 +92,29 @@ export async function getAuthHeaders(): Promise<Record<string, string>> {
   }
   return {};
 }
+
+/**
+ * Completely signs out the active user from Firebase and clears any stored session credentials.
+ */
+export async function signOutFirebase(): Promise<void> {
+  try {
+    const { auth } = await getFirebase();
+    if (auth) {
+      const { signOut } = await import("firebase/auth");
+      await signOut(auth);
+    }
+  } catch (error) {
+    console.warn("Error signing out from Firebase:", error);
+  }
+
+  try {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("portal_email");
+      window.localStorage.removeItem("portal_role");
+      window.localStorage.removeItem("participant_email");
+      window.localStorage.removeItem("portal_email_for_sign_in");
+    }
+  } catch {
+    /* ignore storage errors */
+  }
+}

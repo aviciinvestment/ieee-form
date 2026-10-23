@@ -13,6 +13,13 @@ const outfit = Outfit({
 export const metadata: Metadata = {
   title: "IEEE 30 Days Skill Challenge",
   description: "Official registration portal for the IEEE 30 Days Skill Challenge",
+  icons: {
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export const viewport: Viewport = {

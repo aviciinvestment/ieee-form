@@ -80,16 +80,20 @@ export async function PUT(req: Request) {
     }
 
     const updatedTemplate: CertificateTemplate = {
-      logoUrl: validData.logoUrl !== undefined ? validData.logoUrl : current.logoUrl,
-      logoName: validData.logoName !== undefined ? validData.logoName : current.logoName,
-      badgeText: validData.badgeText !== undefined ? validData.badgeText : current.badgeText,
       title: validData.title !== undefined ? validData.title : current.title,
       subtitle: validData.subtitle !== undefined ? validData.subtitle : current.subtitle,
       bodyText: validData.bodyText !== undefined ? validData.bodyText : current.bodyText,
-      dateText: validData.dateText !== undefined ? validData.dateText : current.dateText,
+      defaultTrack: validData.defaultTrack !== undefined ? validData.defaultTrack : current.defaultTrack,
       signatoryName: validData.signatoryName !== undefined ? validData.signatoryName : current.signatoryName,
       signatoryTitle: validData.signatoryTitle !== undefined ? validData.signatoryTitle : current.signatoryTitle,
       signatureUrl: validData.signatureUrl !== undefined ? validData.signatureUrl : current.signatureUrl,
+      signatory2Name: validData.signatory2Name !== undefined ? validData.signatory2Name : current.signatory2Name,
+      signatory2Title: validData.signatory2Title !== undefined ? validData.signatory2Title : current.signatory2Title,
+      signatory2SignatureUrl: validData.signatory2SignatureUrl !== undefined ? validData.signatory2SignatureUrl : current.signatory2SignatureUrl,
+      logoUrl: validData.logoUrl !== undefined ? validData.logoUrl : current.logoUrl,
+      logoName: validData.logoName !== undefined ? validData.logoName : current.logoName,
+      badgeText: validData.badgeText !== undefined ? validData.badgeText : current.badgeText,
+      dateText: validData.dateText !== undefined ? validData.dateText : current.dateText,
     };
 
     await prisma.appSetting.upsert({

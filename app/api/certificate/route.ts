@@ -48,42 +48,7 @@ export async function GET(req: Request) {
       /* fallback */
     }
 
-    // Check if the participant's track has a custom certificate description set by their manager
-    if (registration.techSkill) {
-      const trackKey = `track_cert_desc_${registration.techSkill.toLowerCase().trim()}`;
-      let customDesc = "";
-
-      try {
-        const setting = await prisma.appSetting.findUnique({
-          where: { key: trackKey },
-        });
-        if (setting?.value?.trim()) {
-          customDesc = setting.value.trim();
-        }
-      } catch {
-        /* fallback */
-      }
-
-      if (!customDesc) {
-        try {
-          const track = await prisma.learningTrack.findFirst({
-            where: { name: { equals: registration.techSkill, mode: "insensitive" } },
-          });
-          if (track?.certificateDescription?.trim()) {
-            customDesc = track.certificateDescription.trim();
-          }
-        } catch {
-          /* fallback */
-        }
-      }
-
-      if (customDesc) {
-        template = {
-          ...template,
-          bodyText: customDesc,
-        };
-      }
-    }
+    // Template maintains official flier bodyText, while participant.techSkill is placed automatically into the project track section.
 
     return NextResponse.json({
       eligible: true,
