@@ -55,6 +55,26 @@ export function CertificateViewer({
         scrollX: 0,
         scrollY: 0,
         logging: false,
+        onclone: (clonedDoc) => {
+          // Extra safeguard: in the cloned document for html2canvas rendering,
+          // ensure the candidate name container and underline maintain clear vertical separation
+          const nameContainer = clonedDoc.querySelector("[data-cert-name-container]") as HTMLElement | null;
+          if (nameContainer) {
+            nameContainer.style.display = "flex";
+            nameContainer.style.alignItems = "center";
+            nameContainer.style.justifyContent = "center";
+            nameContainer.style.paddingBottom = "0px";
+          }
+          const nameSpan = clonedDoc.querySelector("[data-cert-candidate-name]") as HTMLElement | null;
+          if (nameSpan) {
+            nameSpan.style.display = "inline-block";
+            nameSpan.style.lineHeight = "1.25";
+          }
+          const underline = clonedDoc.querySelector("[data-cert-underline]") as HTMLElement | null;
+          if (underline) {
+            underline.style.marginTop = "0.75cqw";
+          }
+        },
       });
       return canvas;
     } finally {
@@ -287,37 +307,43 @@ export function CertificateViewer({
                   margin: "auto 0",
                 }}
               >
-                {/* Candidate Name Section with Increased Font Size and Dedicated Padding */}
+                {/* Candidate Name Section with Dedicated Underline Separation */}
                 <div
                   className="w-[78%] mx-auto flex flex-col items-center"
-                  style={{ marginBottom: "0.6cqw" }}
+                  style={{ marginBottom: "0.5cqw" }}
                 >
                   <div
-                    className="w-full flex items-end justify-center"
+                    data-cert-name-container
+                    className="w-full flex items-center justify-center text-center"
                     style={{
-                      minHeight: "4.2cqw",
-                      paddingBottom: "0.6cqw", // Clear separation above line so descenders never cut across
+                      minHeight: "3.8cqw",
+                      paddingTop: "0.2cqw",
                     }}
                   >
                     <span
-                      className="font-bold tracking-wide text-white drop-shadow-sm text-center"
+                      data-cert-candidate-name
+                      className="font-bold tracking-wide text-white drop-shadow-sm text-center inline-block"
                       style={{
                         fontSize:
                           nameLength > 28
                             ? "clamp(11px, 2.7cqw, 28px)"
                             : nameLength > 20
                             ? "clamp(13px, 3.3cqw, 33px)"
-                            : "clamp(15px, 4.0cqw, 40px)", // Increased font size for desktop and mobile
-                        lineHeight: 1.2,
+                            : "clamp(15px, 4.0cqw, 40px)",
+                        lineHeight: 1.25,
                       }}
                     >
                       {candidateName}
                     </span>
                   </div>
-                  {/* Clean white horizontal line separated from candidate text */}
+                  {/* Clean white horizontal line separated from candidate text by explicit margin */}
                   <div
+                    data-cert-underline
                     className="w-full bg-white/85"
-                    style={{ height: "0.15cqw" }}
+                    style={{
+                      height: "0.15cqw",
+                      marginTop: "0.65cqw",
+                    }}
                   />
                 </div>
 
