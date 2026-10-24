@@ -67,22 +67,24 @@ export function CertificateViewer({
             underline.style.height = `${Math.max(1.5, Math.round(cw * 0.0016))}px`;
           }
 
-          // 2. Ensure candidate name container is centered and uses explicit pixel minHeight
+          // 2. Ensure candidate name container is centered and lifted upward above the underline
           const nameContainer = clonedDoc.querySelector("[data-cert-name-container]") as HTMLElement | null;
           if (nameContainer) {
             nameContainer.style.display = "flex";
             nameContainer.style.alignItems = "center";
             nameContainer.style.justifyContent = "center";
-            nameContainer.style.paddingTop = "0px";
-            nameContainer.style.paddingBottom = "0px";
             nameContainer.style.minHeight = `${Math.round(cw * 0.044)}px`;
+            nameContainer.style.paddingTop = "0px";
+            nameContainer.style.paddingBottom = `${Math.round(cw * 0.007)}px`;
           }
 
-          // 3. Stable font metrics for candidate name
+          // 3. Stable font metrics for candidate name, pushed upward above underline
           const nameSpan = clonedDoc.querySelector("[data-cert-candidate-name]") as HTMLElement | null;
           if (nameSpan) {
             nameSpan.style.display = "inline-block";
             nameSpan.style.lineHeight = "1.2";
+            nameSpan.style.position = "relative";
+            nameSpan.style.top = `-${Math.round(cw * 0.005)}px`;
           }
 
           // 4. Properly spaced challenge text and track title with balanced breathing room
