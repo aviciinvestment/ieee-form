@@ -63,9 +63,8 @@ export function CertificateViewer({
           // (html2canvas cannot parse 'cqw' units and collapses them to a fraction of a pixel)
           const underline = clonedDoc.querySelector("[data-cert-underline]") as HTMLElement | null;
           if (underline) {
-            const gapPx = Math.max(10, Math.round(cw * 0.015));
-            underline.style.marginTop = `${gapPx}px`;
-            underline.style.height = `${Math.max(1.5, Math.round(cw * 0.0018))}px`;
+            underline.style.marginTop = `${Math.round(cw * 0.012)}px`;
+            underline.style.height = `${Math.max(1.5, Math.round(cw * 0.0016))}px`;
           }
 
           // 2. Ensure candidate name container is centered and uses explicit pixel minHeight
@@ -79,26 +78,37 @@ export function CertificateViewer({
             nameContainer.style.minHeight = `${Math.round(cw * 0.044)}px`;
           }
 
-          // 3. Counteract html2canvas canvas font baseline descent bias
+          // 3. Stable font metrics for candidate name
           const nameSpan = clonedDoc.querySelector("[data-cert-candidate-name]") as HTMLElement | null;
           if (nameSpan) {
             nameSpan.style.display = "inline-block";
-            nameSpan.style.lineHeight = "1.25";
-            // Subtle upward shift to compensate for html2canvas synthetic font baseline drop
-            const liftPx = Math.max(2, Math.round(cw * 0.0035));
-            nameSpan.style.transform = `translateY(-${liftPx}px)`;
+            nameSpan.style.lineHeight = "1.2";
           }
 
-          // 4. Elevate the challenge text and track title so they don't sit too low in the banner
+          // 4. Properly spaced challenge text and track title with balanced breathing room
           const challengeText = clonedDoc.querySelector("[data-cert-challenge-text]") as HTMLElement | null;
           if (challengeText) {
-            challengeText.style.marginTop = `${Math.max(2, Math.round(cw * 0.003))}px`;
-            challengeText.style.marginBottom = `${Math.max(2, Math.round(cw * 0.0035))}px`;
+            challengeText.style.marginTop = `${Math.round(cw * 0.022)}px`;
+            challengeText.style.marginBottom = `${Math.round(cw * 0.015)}px`;
+            const paragraphs = challengeText.querySelectorAll("p");
+            paragraphs.forEach((p) => {
+              p.style.margin = "0px";
+              p.style.padding = "0px";
+              p.style.lineHeight = "1.3";
+            });
           }
+
           const trackTitle = clonedDoc.querySelector("[data-cert-track-name]") as HTMLElement | null;
           if (trackTitle) {
-            trackTitle.style.marginTop = "0px";
+            trackTitle.style.margin = "0px";
+            trackTitle.style.padding = "0px";
             trackTitle.style.lineHeight = "1.15";
+          }
+
+          const banner = clonedDoc.querySelector("[data-cert-banner]") as HTMLElement | null;
+          if (banner) {
+            banner.style.paddingTop = `${Math.round(cw * 0.016)}px`;
+            banner.style.paddingBottom = `${Math.round(cw * 0.024)}px`;
           }
         },
       });
@@ -327,23 +337,23 @@ export function CertificateViewer({
 
               {/* 2. Middle Dark Blue Gradient Banner */}
               <div
+                data-cert-banner
                 className="w-full text-center text-white shadow-md relative"
                 style={{
                   background: "linear-gradient(90deg, #071f4e 0%, #0d3b82 45%, #18569c 100%)",
-                  padding: "1.0cqw 2cqw 1.2cqw 2cqw",
+                  padding: "1.6cqw 2cqw 2.2cqw 2cqw",
                   margin: "auto 0",
                 }}
               >
                 {/* Candidate Name Section with Dedicated Underline Separation */}
                 <div
                   className="w-[78%] mx-auto flex flex-col items-center"
-                  style={{ marginBottom: "clamp(1px, 0.2cqw, 3px)" }}
                 >
                   <div
                     data-cert-name-container
                     className="w-full flex items-center justify-center text-center"
                     style={{
-                      minHeight: "clamp(24px, 4.0cqw, 40px)",
+                      minHeight: "clamp(24px, 4.2cqw, 44px)",
                     }}
                   >
                     <span
@@ -356,7 +366,7 @@ export function CertificateViewer({
                             : nameLength > 20
                             ? "clamp(13px, 3.3cqw, 33px)"
                             : "clamp(15px, 4.0cqw, 40px)",
-                        lineHeight: 1.25,
+                        lineHeight: 1.2,
                       }}
                     >
                       {candidateName}
@@ -367,25 +377,25 @@ export function CertificateViewer({
                     data-cert-underline
                     className="w-full bg-white/85"
                     style={{
-                      height: "clamp(1.2px, 0.15cqw, 2px)",
-                      marginTop: "clamp(7px, 1.3cqw, 14px)",
+                      height: "clamp(1.2px, 0.16cqw, 2px)",
+                      marginTop: "clamp(8px, 1.2cqw, 13px)",
                     }}
                   />
                 </div>
 
-                {/* Exact Flyer Challenge Text in Two Clean Lines (Elevated) */}
+                {/* Exact Flyer Challenge Text in Two Clean Lines (Well-spaced) */}
                 <div
                   data-cert-challenge-text
                   className="font-normal text-white/95 max-w-[94%] mx-auto text-center"
                   style={{
-                    fontSize: "1.35cqw",
-                    lineHeight: 1.25,
-                    marginTop: "clamp(2px, 0.3cqw, 4px)",
-                    marginBottom: "clamp(2px, 0.25cqw, 4px)",
+                    fontSize: "1.4cqw",
+                    lineHeight: 1.3,
+                    marginTop: "clamp(10px, 2.0cqw, 22px)",
+                    marginBottom: "clamp(8px, 1.5cqw, 16px)",
                   }}
                 >
-                  <p>has successfully completed the 30-day tech skill</p>
-                  <p>challenge/training in</p>
+                  <p style={{ margin: 0, padding: 0 }}>has successfully completed the 30-day tech skill</p>
+                  <p style={{ margin: 0, padding: 0 }}>challenge/training in</p>
                 </div>
 
                 {/* Project Track Title (Elevated with Balanced Bottom Breathing Room) */}
@@ -393,10 +403,11 @@ export function CertificateViewer({
                   data-cert-track-name
                   className="font-black uppercase tracking-wider text-white drop-shadow-md text-center"
                   style={{
-                    fontSize: "2.3cqw",
+                    fontSize: "2.4cqw",
                     lineHeight: 1.15,
                     letterSpacing: "0.06em",
-                    marginTop: "0px",
+                    margin: 0,
+                    padding: 0,
                   }}
                 >
                   {trackName}
