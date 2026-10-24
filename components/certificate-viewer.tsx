@@ -56,23 +56,37 @@ export function CertificateViewer({
         scrollY: 0,
         logging: false,
         onclone: (clonedDoc) => {
-          // Extra safeguard: in the cloned document for html2canvas rendering,
-          // ensure the candidate name container and underline maintain clear vertical separation
+          // Resolve exact pixel dimensions based on the live certificate element
+          const cw = certRef.current?.clientWidth || 800;
+
+          // 1. Convert underline margin and height to explicit PX values
+          // (html2canvas cannot parse 'cqw' units and collapses them to a fraction of a pixel)
+          const underline = clonedDoc.querySelector("[data-cert-underline]") as HTMLElement | null;
+          if (underline) {
+            const gapPx = Math.max(12, Math.round(cw * 0.018));
+            underline.style.marginTop = `${gapPx}px`;
+            underline.style.height = `${Math.max(1.5, Math.round(cw * 0.0018))}px`;
+          }
+
+          // 2. Ensure candidate name container is centered and uses explicit pixel minHeight
           const nameContainer = clonedDoc.querySelector("[data-cert-name-container]") as HTMLElement | null;
           if (nameContainer) {
             nameContainer.style.display = "flex";
             nameContainer.style.alignItems = "center";
             nameContainer.style.justifyContent = "center";
+            nameContainer.style.paddingTop = "0px";
             nameContainer.style.paddingBottom = "0px";
+            nameContainer.style.minHeight = `${Math.round(cw * 0.046)}px`;
           }
+
+          // 3. Counteract html2canvas canvas font baseline descent bias
           const nameSpan = clonedDoc.querySelector("[data-cert-candidate-name]") as HTMLElement | null;
           if (nameSpan) {
             nameSpan.style.display = "inline-block";
             nameSpan.style.lineHeight = "1.25";
-          }
-          const underline = clonedDoc.querySelector("[data-cert-underline]") as HTMLElement | null;
-          if (underline) {
-            underline.style.marginTop = "0.75cqw";
+            // Subtle upward shift to compensate for html2canvas synthetic font baseline drop
+            const liftPx = Math.max(2, Math.round(cw * 0.0035));
+            nameSpan.style.transform = `translateY(-${liftPx}px)`;
           }
         },
       });
@@ -189,6 +203,7 @@ export function CertificateViewer({
       >
         <div
           ref={certRef}
+          data-cert-root
           className="relative w-full aspect-[1000/707] select-none text-slate-900 overflow-hidden flex flex-col justify-between"
           style={{
             containerType: "inline-size",
@@ -310,14 +325,13 @@ export function CertificateViewer({
                 {/* Candidate Name Section with Dedicated Underline Separation */}
                 <div
                   className="w-[78%] mx-auto flex flex-col items-center"
-                  style={{ marginBottom: "0.5cqw" }}
+                  style={{ marginBottom: "clamp(3px, 0.4cqw, 6px)" }}
                 >
                   <div
                     data-cert-name-container
                     className="w-full flex items-center justify-center text-center"
                     style={{
-                      minHeight: "3.8cqw",
-                      paddingTop: "0.2cqw",
+                      minHeight: "clamp(24px, 4.2cqw, 42px)",
                     }}
                   >
                     <span
@@ -341,8 +355,8 @@ export function CertificateViewer({
                     data-cert-underline
                     className="w-full bg-white/85"
                     style={{
-                      height: "0.15cqw",
-                      marginTop: "0.65cqw",
+                      height: "clamp(1.2px, 0.15cqw, 2px)",
+                      marginTop: "clamp(8px, 1.4cqw, 16px)",
                     }}
                   />
                 </div>
