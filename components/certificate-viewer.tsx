@@ -63,7 +63,7 @@ export function CertificateViewer({
           // (html2canvas cannot parse 'cqw' units and collapses them to a fraction of a pixel)
           const underline = clonedDoc.querySelector("[data-cert-underline]") as HTMLElement | null;
           if (underline) {
-            const gapPx = Math.max(12, Math.round(cw * 0.018));
+            const gapPx = Math.max(10, Math.round(cw * 0.015));
             underline.style.marginTop = `${gapPx}px`;
             underline.style.height = `${Math.max(1.5, Math.round(cw * 0.0018))}px`;
           }
@@ -76,7 +76,7 @@ export function CertificateViewer({
             nameContainer.style.justifyContent = "center";
             nameContainer.style.paddingTop = "0px";
             nameContainer.style.paddingBottom = "0px";
-            nameContainer.style.minHeight = `${Math.round(cw * 0.046)}px`;
+            nameContainer.style.minHeight = `${Math.round(cw * 0.044)}px`;
           }
 
           // 3. Counteract html2canvas canvas font baseline descent bias
@@ -87,6 +87,18 @@ export function CertificateViewer({
             // Subtle upward shift to compensate for html2canvas synthetic font baseline drop
             const liftPx = Math.max(2, Math.round(cw * 0.0035));
             nameSpan.style.transform = `translateY(-${liftPx}px)`;
+          }
+
+          // 4. Elevate the challenge text and track title so they don't sit too low in the banner
+          const challengeText = clonedDoc.querySelector("[data-cert-challenge-text]") as HTMLElement | null;
+          if (challengeText) {
+            challengeText.style.marginTop = `${Math.max(2, Math.round(cw * 0.003))}px`;
+            challengeText.style.marginBottom = `${Math.max(2, Math.round(cw * 0.0035))}px`;
+          }
+          const trackTitle = clonedDoc.querySelector("[data-cert-track-name]") as HTMLElement | null;
+          if (trackTitle) {
+            trackTitle.style.marginTop = "0px";
+            trackTitle.style.lineHeight = "1.15";
           }
         },
       });
@@ -318,20 +330,20 @@ export function CertificateViewer({
                 className="w-full text-center text-white shadow-md relative"
                 style={{
                   background: "linear-gradient(90deg, #071f4e 0%, #0d3b82 45%, #18569c 100%)",
-                  padding: "1.2cqw 2cqw",
+                  padding: "1.0cqw 2cqw 1.2cqw 2cqw",
                   margin: "auto 0",
                 }}
               >
                 {/* Candidate Name Section with Dedicated Underline Separation */}
                 <div
                   className="w-[78%] mx-auto flex flex-col items-center"
-                  style={{ marginBottom: "clamp(3px, 0.4cqw, 6px)" }}
+                  style={{ marginBottom: "clamp(1px, 0.2cqw, 3px)" }}
                 >
                   <div
                     data-cert-name-container
                     className="w-full flex items-center justify-center text-center"
                     style={{
-                      minHeight: "clamp(24px, 4.2cqw, 42px)",
+                      minHeight: "clamp(24px, 4.0cqw, 40px)",
                     }}
                   >
                     <span
@@ -356,32 +368,35 @@ export function CertificateViewer({
                     className="w-full bg-white/85"
                     style={{
                       height: "clamp(1.2px, 0.15cqw, 2px)",
-                      marginTop: "clamp(8px, 1.4cqw, 16px)",
+                      marginTop: "clamp(7px, 1.3cqw, 14px)",
                     }}
                   />
                 </div>
 
-                {/* Exact Flyer Challenge Text in Two Clean Lines */}
+                {/* Exact Flyer Challenge Text in Two Clean Lines (Elevated) */}
                 <div
+                  data-cert-challenge-text
                   className="font-normal text-white/95 max-w-[94%] mx-auto text-center"
                   style={{
-                    fontSize: "1.4cqw",
-                    lineHeight: 1.3,
-                    marginTop: "0.5cqw",
-                    marginBottom: "0.6cqw",
+                    fontSize: "1.35cqw",
+                    lineHeight: 1.25,
+                    marginTop: "clamp(2px, 0.3cqw, 4px)",
+                    marginBottom: "clamp(2px, 0.25cqw, 4px)",
                   }}
                 >
                   <p>has successfully completed the 30-day tech skill</p>
                   <p>challenge/training in</p>
                 </div>
 
-                {/* Project Track (Automatically Placed for each individual client) */}
+                {/* Project Track Title (Elevated with Balanced Bottom Breathing Room) */}
                 <h2
+                  data-cert-track-name
                   className="font-black uppercase tracking-wider text-white drop-shadow-md text-center"
                   style={{
-                    fontSize: "2.35cqw",
-                    lineHeight: 1.2,
+                    fontSize: "2.3cqw",
+                    lineHeight: 1.15,
                     letterSpacing: "0.06em",
+                    marginTop: "0px",
                   }}
                 >
                   {trackName}
